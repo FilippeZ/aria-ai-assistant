@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.Python
+build/
+dist/
+venv/
+env/
+.venv/
+ENV/
+
+# Models (large binary files — auto-downloaded at runtime)
+models/
+
+# TTS voice models (large binary files — auto-downloaded at runtime)
+voices/
+
+# Caches and data
+.cache/
+*.cache
+chroma_db/
+.chroma/
+data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/
+
+# Environment
+.env
+.env.local
+.envrc
+*.local
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+docker-data/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Audio recordings (test artifacts)
+*.wav
+*.mp3
+*.ogg
+
+# Jupyter / testing
+.ipynb_checkpoints/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+faces/
+repomix-output.xml

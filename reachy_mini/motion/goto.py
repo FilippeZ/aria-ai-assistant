@@ -1,0 +1,2 @@
+class GotoMove:
+    pass

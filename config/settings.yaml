@@ -1,0 +1,92 @@
+# Personal AI Assistant — Configuration
+# Running locally on NVIDIA Jetson Orin Nano
+
+assistant:
+  name: "Aria"
+  language: "en"            # STT language: "en" English, "" auto-detect
+
+llm:
+  model: ""                           # empty = auto-detect from server
+  base_url: "http://localhost:8080"
+  backend: "openai"
+  max_tokens: 128
+  temperature: 0.7
+  timeout: 120.0
+  system_prompt: |
+    You are Aria, a smart personal AI assistant running locally on an NVIDIA Jetson Orin Nano.
+    Your responses are spoken aloud via text-to-speech — keep them concise and natural.
+    Reply in 1-2 sentences maximum. Be direct and helpful.
+    Never use emojis, asterisks, bullet points, markdown, or special formatting.
+    Write numbers as words when they are short (e.g. "three" not "3").
+    If you don't know something, say "I don't know the answer to that."
+    If you can see the user via camera, you may reference what you see when relevant.
+  system_prompt_no_rag: |
+    You are Aria, a smart personal AI assistant.
+    Your responses are spoken aloud via text-to-speech — keep them concise and natural.
+    Reply in 1-2 sentences maximum. Be direct and helpful.
+    Never use emojis, asterisks, bullet points, markdown, or special formatting.
+
+stt:
+  model: "small"                      # tiny, base, small, medium
+  device: "cuda"
+  compute_type: "int8"
+  language: "en"                      # "en" English, "" auto-detect
+  beam_size: 1                        # 1=greedy (fast), 5=beam (accurate)
+
+tts:
+  voice: "af_sarah"                   # kokoro voices: af_sarah, af_bella, am_adam, bf_emma, bm_george
+  speed: 1.05
+  lang: "en-us"
+  first_chunk_words: 8                # words before first TTS chunk fires (lower = faster start)
+  max_chunk_words: 12                  # max words per TTS chunk
+
+audio:
+  sample_rate: 16000
+  channels: 1
+  input_device: "USB Microphone"
+  output_device: null                 # null = system default speaker
+  echo_cancellation: true             # WebRTC AEC
+
+vad:
+  silero_threshold: 0.30              # speech probability threshold (lower = more sensitive)
+  speech_threshold: 0.025             # RMS pre-filter
+  silence_duration_ms: 450            # ms of silence to detect end of utterance
+  lookback_ms: 250                    # ms of audio before speech starts
+  max_speech_secs: 15                 # max utterance length
+  chunk_ms: 32                        # chunk size (32ms required by Silero)
+  min_utterance_secs: 0.4             # minimum utterance length
+  min_utterance_rms: 0.0001
+
+vision:
+  camera_device: 0                    # /dev/video0
+  width: 640
+  height: 480
+  jpeg_quality: 80
+  frames: 1                           # frames per VLM query
+  capture_fps: 10.0
+  system_prompt: |
+    You are Aria, a smart personal AI assistant with camera access running on NVIDIA Jetson.
+    An image from the camera always accompanies the question.
+    Describe what you see briefly and answer in one short sentence. No markdown.
+  few_shot:
+    - role: "user"
+      content: "Hello!"
+    - role: "assistant"
+      content: "Hello! How can I help you?"
+
+web:
+  ui_fps: 10.0
+  host: "0.0.0.0"
+  port: 8090
+
+rag:
+  enabled: false
+  knowledge_dir: "./knowledge_base"
+  persist_dir: "./data/chromadb"
+  embedding_backend: "llamacpp"
+  embedding_model: "bge-small-en-v1.5"
+  embedding_base_url: "http://localhost:8081"
+  n_results: 1
+  min_relevance: 0.5
+  chunk_size: 200
+  chunk_overlap: 20

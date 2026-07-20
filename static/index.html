@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aria — Personal AI Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #030712;
+  --card: #111827;
+  --card2: #1f2937;
+  --border: #374151;
+  --text: #f9fafb;
+  --dim: #9ca3af;
+  --dim2: #6b7280;
+  --accent: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.4);
+  --user-bg: #1e3a8a;
+  --user-border: #60a5fa;
+  --aria-bg: #1f2937;
+  --aria-border: #9ca3af;
+  --ok: #10b981;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 10;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+.logo-sub {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--dim);
+  margin-left: 4px;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pill {
+  font-size: 0.75rem;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+.pill-platform {
+  background: rgba(139, 92, 246, 0.15);
+  color: #c4b5fd;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+.pill-conn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+}
+.pill-conn.ok {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--ok);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.pill-conn.err {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.pill-conn.ok .dot {
+  box-shadow: 0 0 8px var(--ok);
+}
+
+/* Layout */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 16px;
+  padding: 16px;
+}
+.col-left {
+  width: 380px;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.col-left::-webkit-scrollbar { display: none; }
+.col-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Panels */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.panel-hdr {
+  padding: 10px 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(31, 41, 55, 0.5);
+}
+
+/* Camera */
+.cam-wrap {
+  background: #000;
+  aspect-ratio: 4/3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+.cam-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+.cam-placeholder {
+  color: var(--dim);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 20px;
+}
+.cam-placeholder .icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  opacity: 0.3;
+  display: block;
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.live-dot.off {
+  background: var(--dim2);
+  animation: none;
+  box-shadow: none;
+}
+
+/* Pipeline */
+.pipe-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
+}
+.stages {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.stage {
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 16px;
+  background: var(--card2);
+  color: var(--dim);
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+.stage.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 10px var(--accent-glow);
+  font-weight: 600;
+}
+.status-txt {
+  font-size: 0.75rem;
+  color: var(--dim);
+  min-width: 80px;
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* Mic button */
+.mic-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  outline: none;
+  flex-shrink: 0;
+}
+.mic-btn.live {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--ok);
+}
+.mic-btn.muted {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--danger);
+}
+.mic-btn:hover {
+  filter: brightness(1.2);
+}
+
+/* Speaker */
+.audio-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px 12px;
+  font-size: 0.75rem;
+}
+.audio-row label {
+  color: var(--dim);
+  white-space: nowrap;
+}
+.spk-sel {
+  flex: 1;
+  min-width: 0;
+  background: var(--card2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.spk-sel:focus {
+  border-color: var(--accent);
+}
+.spk-sel:disabled {
+  color: var(--dim2);
+  opacity: 0.6;
+}
+.spk-st {
+  font-size: 0.7rem;
+  white-space: nowrap;
+  color: var(--ok);
+  font-weight: 500;
+}
+.spk-st.err {
+  color: var(--danger);
+}
+
+/* Stats */
+.sys-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+  padding: 12px 16px;
+  font-size: 0.75rem;
+}
+.sys-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--border);
+}
+.sys-row:last-child, .sys-row:nth-last-child(2) {
+  border-bottom: none;
+}
+.sys-grid .lbl {
+  color: var(--dim);
+}
+.sys-grid .val {
+  text-align: right;
+  color: var(--text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+}
+
+/* ── CHAT PANEL ── */
+.chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.chat-hdr {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  background: rgba(31, 41, 55, 0.5);
+}
+.chat-hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.chat-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.chat-subtitle {
+  font-size: 0.8rem;
+  color: var(--dim);
+  margin-top: 2px;
+}
+.chat-count {
+  font-size: 0.75rem;
+  color: var(--dim);
+  background: var(--card2);
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scroll-behavior: smooth;
+}
+
+/* Empty state */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--dim);
+  text-align: center;
+  padding: 40px;
+}
+.empty-icon {
+  font-size: 3.5rem;
+  opacity: 0.2;
+}
+.empty-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.empty-hint {
+  font-size: 0.85rem;
+  color: var(--dim);
+  line-height: 1.6;
+  max-width: 300px;
+}
+
+/* Message bubbles */
+.msg-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: slide-up 0.3s ease;
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+}
+.msg-label.user-lbl {
+  color: #93c5fd;
+  align-self: flex-end;
+}
+.msg-label.aria-lbl {
+  color: #d1d5db;
+  align-self: flex-start;
+}
+
+.bubble {
+  padding: 12px 18px;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  word-wrap: break-word;
+  max-width: 85%;
+  white-space: pre-wrap;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.bubble.user {
+  background: var(--user-bg);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-bottom-right-radius: 4px;
+  align-self: flex-end;
+  color: #f8fafc;
+}
+.bubble.aria {
+  background: var(--aria-bg);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  align-self: flex-start;
+  color: #f9fafb;
+}
+.bubble-meta {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.5);
+  margin-top: 6px;
+  display: flex;
+  justify-content: flex-end;
+}
+.bubble.aria .bubble-meta {
+  justify-content: flex-start;
+  color: var(--dim2);
+}
+
+/* Streaming cursor */
+.cursor-blink::after {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: #3b82f6;
+  margin-left: 4px;
+  vertical-align: middle;
+  border-radius: 2px;
+  animation: blink 0.8s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Typing indicator */
+.typing-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: flex-start;
+}
+.typing-bubble {
+  padding: 14px 18px;
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--aria-bg);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dim);
+  animation: typing 1.4s infinite ease-in-out both;
+}
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+@keyframes typing {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+/* Footer */
+footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  z-index: 10;
+}
+.stat {
+  font-size: 0.75rem;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.stat-label {
+  color: var(--dim2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.stat-val {
+  color: var(--text);
+  font-weight: 500;
+}
+.stat-bar {
+  width: 60px;
+  height: 6px;
+  background: var(--card2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.stat-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease-out, background-color 0.3s;
+}
+.green { background: var(--ok); }
+.amber { background: var(--warn); }
+.red { background: var(--danger); }
+.sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+}
+
+/* TTFT indicator */
+.ttft-badge {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--ok);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-weight: 600;
+}
+.ttft-badge.slow {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warn);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--dim2); }
+
+@media(max-width: 800px) {
+  .main { flex-direction: column; padding: 10px; gap: 10px; }
+  .col-left { width: 100%; min-width: 0; max-height: 40vh; }
+  .chat-panel { min-height: 40vh; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    <div>
+      <span id="assistantName">Aria</span>
+      <span class="logo-sub">— Personal AI</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="pill pill-platform" id="platformBadge">Jetson</span>
+    <div class="pill pill-conn err" id="connStatus">
+      <span class="dot"></span> Disconnected
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <!-- LEFT: camera + pipeline + stats -->
+  <div class="col-left">
+
+    <!-- Camera -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <span>Live Camera</span>
+        <span class="live-dot off" id="liveDot"></span>
+      </div>
+      <div class="cam-wrap">
+        <img id="camImg" alt="Camera Feed" crossorigin="anonymous">
+        <div class="cam-placeholder" id="camPlaceholder">
+          <span class="icon">📷</span>
+          Waiting for camera feed...
+        </div>
+        <div id="faceRecBadge" style="display:none; position:absolute; bottom:12px; right:12px; background:rgba(0,0,0,0.6); color:var(--ok); border:1px solid rgba(16, 185, 129, 0.4); padding:6px 10px; border-radius:8px; font-size:0.85rem; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.3); backdrop-filter:blur(4px);">
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="panel">
+      <div class="pipe-row">
+        <div class="stages" id="pipeStages">
+          <div class="stage active" data-stage="listening">🎤 Listen</div>
+          <div class="stage" data-stage="transcribing">📝 STT</div>
+          <div class="stage" data-stage="thinking">🧠 LLM</div>
+          <div class="stage" data-stage="speaking">🔊 TTS</div>
+        </div>
+        <span class="status-txt" id="pipeStatus">Listening...</span>
+        <button class="mic-btn live" id="micBtn" title="Toggle mic">
+          <span id="micLabel">🎤 Live</span>
+        </button>
+      </div>
+      <div class="audio-row">
+        <label for="spkSel">🔈</label>
+        <select class="spk-sel" id="spkSel" disabled><option>Detecting devices...</option></select>
+        <span class="spk-st" id="spkStatus"></span>
+      </div>
+    </div>
+
+    <!-- Models/Stats -->
+    <div class="panel">
+      <div class="panel-hdr"><span>Active Models</span></div>
+      <div class="sys-grid">
+        <div class="sys-row"><span class="lbl">STT</span><span class="val" id="mSTT" title="Speech-to-Text">--</span></div>
+        <div class="sys-row"><span class="lbl">TTS</span><span class="val" id="mTTS" title="Text-to-Speech">--</span></div>
+        <div class="sys-row"><span class="lbl">LLM</span><span class="val" id="mVLM" title="Large Language Model">--</span></div>
+        <div class="sys-row"><span class="lbl">VAD</span><span class="val" id="mVAD" title="Voice Activity Detection">--</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: conversation -->
+  <div class="col-right">
+    <div class="chat-panel">
+      <div class="chat-hdr">
+        <div class="chat-hdr-left">
+          <div>
+            <div class="chat-title">💬 Conversation</div>
+            <div class="chat-subtitle">Speak freely — Aria listens & responds</div>
+          </div>
+        </div>
+        <span class="chat-count" id="msgCount" style="display:none">0 messages</span>
+      </div>
+
+      <div class="messages" id="messages">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">🎙️</div>
+          <div class="empty-title">Ready for Conversation</div>
+          <div class="empty-hint">Speak naturally — Aria understands English.<br>Features automatic silence detection & instant voice response.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="stat">
+    <span class="stat-label">CPU</span>
+    <div class="stat-bar"><div class="stat-fill green" id="cpuBar" style="width:0%"></div></div>
+    <span class="stat-val" id="cpuVal">--%</span>
+  </div>
+  <div class="sep"></div>
+  <div class="stat">
+    <span class="stat-label">RAM</span>
+    <div class="stat-bar"><div class="stat-fill green" id="ramBar" style="width:0%"></div></div>
+    <span class="stat-val" id="ramVal">-- GB</span>
+  </div>
+  <div class="sep"></div>
+  <div class="stat">
+    <span class="stat-label">GPU</span>
+    <div class="stat-bar"><div class="stat-fill green" id="gpuBar" style="width:0%"></div></div>
+    <span class="stat-val" id="gpuVal">--%</span>
+  </div>
+  <div class="sep"></div>
+  <div class="stat"><span class="stat-label">Platform</span><span class="stat-val" id="platformFt">Jetson</span></div>
+  <div class="sep" id="ttftSep" style="display:none"></div>
+  <div class="stat" id="ttftStat" style="display:none">
+    <span class="stat-label">TTFT</span>
+    <span class="ttft-badge" id="ttftBadge" title="Time To First Token">--</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  let ws = null, reconnTimer = null, pttActive = false;
+  let msgCount = 0, currentAria = null, typingEl = null;
+
+  /* ── WebSocket ── */
+  function connect(){
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}/ws`);
+    ws.onopen = () => {
+      $('connStatus').className = 'pill pill-conn ok';
+      $('connStatus').innerHTML = '<span class="dot"></span> Connected';
+      if(reconnTimer) { clearTimeout(reconnTimer); reconnTimer = null; }
+    };
+    ws.onclose = () => {
+      $('connStatus').className = 'pill pill-conn err';
+      $('connStatus').innerHTML = '<span class="dot"></span> Disconnected';
+      $('liveDot').className = 'live-dot off';
+      $('spkSel').disabled = true;
+      reconnTimer = setTimeout(connect, 3000);
+    };
+    ws.onerror = () => ws.close();
+    ws.onmessage = ev => {
+      let m; try { m = JSON.parse(ev.data); } catch(e) { return; }
+      switch(m.type){
+        case 'frame':         onFrame(m); break;
+        case 'status':        onStatus(m); break;
+        case 'transcript':    onTranscript(m); break;
+        case 'token':         onToken(m); break;
+        case 'done':          onDone(m); break;
+        case 'stats':         onStats(m); break;
+        case 'info':          onInfo(m); break;
+        case 'ptt_state':     onPtt(m); break;
+        case 'speaker_state': onSpeaker(m); break;
+        case 'face_rec':      onFaceRec(m); break;
+      }
+    };
+  }
+
+  /* ── Camera & Face ── */
+  function onFrame(m){
+    const img = $('camImg');
+    img.src = 'data:image/jpeg;base64,' + m.data;
+    img.style.display = 'block';
+    $('camPlaceholder').style.display = 'none';
+    $('liveDot').className = 'live-dot';
+  }
+  
+  function onFaceRec(m){
+    const badge = $('faceRecBadge');
+    if(m.name){
+      badge.style.display = 'block';
+      const isHighConf = m.confidence > 60.0;
+      badge.style.color = isHighConf ? 'var(--ok)' : 'var(--warn)';
+      badge.style.borderColor = isHighConf ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)';
+      badge.textContent = `${m.name.charAt(0).toUpperCase() + m.name.slice(1)}: ${m.confidence.toFixed(1)}%`;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  /* ── Pipeline status ── */
+  function onStatus(m){
+    const labels = {
+      listening: 'Listening...',
+      transcribing: 'Transcribing...',
+      thinking: 'Thinking...',
+      speaking: 'Speaking...',
+      muted: 'Muted'
+    };
+    for(let s of $('pipeStages').children) s.classList.toggle('active', s.dataset.stage === m.stage);
+    $('pipeStatus').textContent = labels[m.stage] || m.stage;
+    
+    if (m.stage === 'thinking' && !typingEl && !currentAria) showTyping();
+    if (m.stage === 'listening' && typingEl) removeTyping();
+  }
+
+  /* ── User transcript ── */
+  function onTranscript(m){
+    hideEmpty();
+    removeTyping();
+    const block = document.createElement('div');
+    block.className = 'msg-block';
+    const stt = m.stt_time ? `STT ${m.stt_time.toFixed(1)}s` : '';
+    const dur = m.duration ? ` · ${m.duration.toFixed(1)}s` : '';
+    block.innerHTML = `
+      <div class="msg-label user-lbl">You 👤</div>
+      <div class="bubble user">${esc(m.text)}<div class="bubble-meta">${stt}${dur}</div></div>
+    `;
+    $('messages').appendChild(block);
+    scrollChat();
+    bumpCount();
+  }
+
+  /* ── Streaming token (Aria response) ── */
+  function onToken(m){
+    removeTyping();
+    if(!currentAria){
+      hideEmpty();
+      const block = document.createElement('div');
+      block.className = 'msg-block';
+      block.innerHTML = `
+        <div class="msg-label aria-lbl">🤖 Aria</div>
+        <div class="bubble aria"><span class="content cursor-blink"></span><div class="bubble-meta"></div></div>
+      `;
+      $('messages').appendChild(block);
+      currentAria = block;
+    }
+    currentAria.querySelector('.content').textContent += m.text;
+    scrollChat();
+  }
+
+  /* ── Done ── */
+  function onDone(m){
+    if(currentAria){
+      currentAria.querySelector('.content').classList.remove('cursor-blink');
+      const meta = currentAria.querySelector('.bubble-meta');
+      const parts = [];
+      if(m.ttft != null) parts.push('TTFT ' + m.ttft.toFixed(1) + 's');
+      if(m.vlm_time != null) parts.push('VLM ' + m.vlm_time.toFixed(1) + 's');
+      meta.textContent = parts.join(' · ');
+      currentAria = null;
+      bumpCount();
+    }
+    if(m.ttft != null){
+      $('ttftSep').style.display = '';
+      $('ttftStat').style.display = '';
+      const b = $('ttftBadge');
+      b.textContent = m.ttft.toFixed(1) + 's';
+      b.className = 'ttft-badge' + (m.ttft > 5 ? ' slow' : '');
+    }
+  }
+
+  /* ── Typing indicator ── */
+  function showTyping(){
+    if(typingEl) return;
+    const block = document.createElement('div');
+    block.className = 'typing-block';
+    block.innerHTML = `
+      <div class="msg-label aria-lbl">🤖 Aria</div>
+      <div class="typing-bubble">
+        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+      </div>`;
+    $('messages').appendChild(block);
+    typingEl = block;
+    scrollChat();
+  }
+  function removeTyping(){
+    if(typingEl) { typingEl.remove(); typingEl = null; }
+  }
+
+  /* ── Stats ── */
+  function onStats(m){
+    setBar('cpu', m.cpu);
+    if(m.gpu !== undefined) setBar('gpu', m.gpu);
+    if(m.ram_total){
+      const rp = (m.ram_used / m.ram_total) * 100;
+      $('ramBar').style.width = rp.toFixed(0) + '%';
+      colorBar($('ramBar'), rp);
+      $('ramVal').textContent = m.ram_used.toFixed(1) + ' / ' + m.ram_total.toFixed(1) + ' GB';
+    }
+    if(m.platform) { $('platformBadge').textContent = m.platform; $('platformFt').textContent = m.platform; }
+  }
+
+  /* ── Info ── */
+  function onInfo(m){
+    if(m.platform) { $('platformBadge').textContent = m.platform; $('platformFt').textContent = m.platform; }
+    if(m.name) $('assistantName').textContent = m.name;
+    if(m.models){
+      const md = m.models;
+      if(md.stt) $('mSTT').textContent = md.stt.split('/').pop() || md.stt;
+      if(md.vlm) $('mVLM').textContent = md.vlm.split('/').pop() || md.vlm;
+      if(md.tts) $('mTTS').textContent = md.tts.split('/').pop() || md.tts;
+      if(md.vad) $('mVAD').textContent = md.vad;
+    }
+  }
+
+  /* ── PTT ── */
+  function onPtt(m){
+    pttActive = m.active;
+    const btn = $('micBtn');
+    btn.className = 'mic-btn ' + (pttActive ? 'live' : 'muted');
+    $('micLabel').textContent = pttActive ? '🎤 Live' : '🔇 Muted';
+  }
+  $('micBtn').addEventListener('click', () => {
+    if(!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({type: 'ptt', active: !pttActive}));
+  });
+
+  /* ── Speaker ── */
+  function onSpeaker(m){
+    const sel = $('spkSel'), st = $('spkStatus');
+    const speakers = Array.isArray(m.speakers) ? m.speakers : [];
+    sel.replaceChildren();
+    if(!speakers.length){
+      const o = document.createElement('option'); o.textContent = 'No audio outputs'; sel.appendChild(o);
+      sel.disabled = true; st.textContent = m.error || ''; st.className = 'spk-st err'; return;
+    }
+    for(const sp of speakers){
+      const o = document.createElement('option'); o.value = sp.id; o.textContent = sp.label || sp.id; o.selected = sp.id === m.selected; sel.appendChild(o);
+    }
+    sel.disabled = false;
+    st.textContent = m.error ? m.error : (m.aec_enabled ? 'AEC ✓' : 'Direct');
+    st.className = 'spk-st' + (m.error ? ' err' : '');
+  }
+  $('spkSel').addEventListener('change', function(){
+    if(!ws || ws.readyState !== WebSocket.OPEN) return;
+    this.disabled = true; $('spkStatus').textContent = 'Switching...';
+    ws.send(JSON.stringify({type: 'set_speaker', sink: this.value}));
+  });
+
+  /* ── Helpers ── */
+  function setBar(p, pct){
+    const b = $(p + 'Bar'); b.style.width = pct.toFixed(0) + '%'; colorBar(b, pct);
+    $(p + 'Val').textContent = pct.toFixed(0) + '%';
+  }
+  function colorBar(el, pct){ el.className = 'stat-fill ' + (pct > 90 ? 'red' : pct > 70 ? 'amber' : 'green'); }
+  function scrollChat(){ const m = $('messages'); m.scrollTop = m.scrollHeight; }
+  function hideEmpty(){ const e = $('emptyState'); if(e) e.remove(); }
+  function bumpCount(){
+    msgCount++;
+    const el = $('msgCount'); el.style.display = '';
+    el.textContent = msgCount + (msgCount === 1 ? ' msg' : ' msgs');
+  }
+  function esc(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  connect();
+})();
+</script>
+</body>
+</html>
