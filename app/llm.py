@@ -329,10 +329,26 @@ class OpenClawLLM(LLM):
     ) -> Iterator[tuple]:
         route = self._decide_routing(prompt, images_b64=images_b64)
         print(f"🧠 Routing Decision: {route}")
-        
-        if route == "CLOUD":
-            p_lower = prompt.lower()
+        p_lower = prompt.lower()
 
+        # ── Advanced Local Tool Shortcuts ──────────────────────────────────
+        if "system status" in p_lower or "telemetry" in p_lower or "jetson status" in p_lower or "how is jetson" in p_lower:
+            from app.tools.cursor_control import get_system_telemetry
+            stats = get_system_telemetry()
+            res = f"📊 Jetson Orin Nano Status:\nCPU: {stats['cpu_percent']}%\nRAM: {stats['ram_used_gb']} / {stats['ram_total_gb']} GB\nGPU Load: {stats['gpu_percent']}%"
+            yield (res, {"done": True})
+            return
+
+        if "screenshot" in p_lower or "on my screen" in p_lower or "desktop view" in p_lower:
+            from app.tools.cursor_control import take_screenshot
+            img_path = take_screenshot()
+            with open(img_path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("utf-8")
+            images_b64 = [b64]
+            prompt = prompt + "\n[Attached current desktop screenshot]"
+            route = "LOCAL"
+
+        if route == "CLOUD":
             if "youtube" in p_lower or ("play" in p_lower and "song" in p_lower) or "click" in p_lower:
                 query = prompt.replace("open youtube and play", "").replace("open youtube", "").replace("play", "").replace("click it to hear it", "").replace("click", "").strip()
                 if not query or len(query) < 3:
@@ -346,6 +362,20 @@ class OpenClawLLM(LLM):
                     url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(query)}"
                     subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     yield (f"Opening YouTube for '{query}' on display via Agent cursor.", {"done": True})
+                return
+
+            if "search online" in p_lower or "find article" in p_lower or "search web" in p_lower or "google" in p_lower:
+                query = prompt.replace("search online", "").replace("find article", "").replace("search web", "").replace("google", "").strip()
+                from app.tools.cursor_control import open_browser_search
+                res_msg = open_browser_search(query)
+                yield (f"🧠 OpenClaw Web Agent: {res_msg}", {"done": True})
+                return
+
+            if "execute python" in p_lower or "run python" in p_lower:
+                code = prompt.replace("execute python", "").replace("run python", "").strip()
+                from app.tools.cursor_control import execute_python_code
+                res_msg = execute_python_code(code)
+                yield (f"🧠 OpenClaw Python Agent: {res_msg}", {"done": True})
                 return
 
             if "terminal" in p_lower or "write this program" in p_lower or "run command" in p_lower:

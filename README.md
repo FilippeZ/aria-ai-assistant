@@ -1,26 +1,30 @@
-# 🤖 Aria Hybrid AI Assistant — Jetson Orin Nano Super
+# 🤖 Aria Advanced Hybrid AI Assistant — Jetson Orin Nano Super
 
-**Aria** is an autonomous, real-time, multimodal voice and vision assistant designed for edge robotics and desktop automation on the **NVIDIA Jetson Orin Nano (8GB / 67 TOPS)**.
+**Aria** is an autonomous, real-time, multimodal voice, vision, and desktop automation assistant designed for edge robotics and desktop productivity on the **NVIDIA Jetson Orin Nano (8GB / 67 TOPS)**.
 
-It features a **Hybrid Architecture** combining a **Local VLM Model** for fast voice conversation, optical vision perception, and local RAG memory, with a **Cloud Agent Gateway (OpenClaw)** for complex tasks, NotebookLM querying, terminal execution, and desktop GUI cursor automation.
+It features an **Advanced Dual-Core Architecture**:
+1. **Local Architecture (`LOCAL`)**: Real-time voice interaction, optical vision perception, desktop screenshot inspection, live system telemetry diagnostics, short-term rolling conversation history, and local vector RAG (`ChromaDB`).
+2. **Cloud Architecture (`CLOUD`)**: Complex multi-step reasoning via **OpenClaw Agent Gateway**, NotebookLM querying, web search & browsing, python code runner, desktop mouse cursor navigation, and terminal execution.
 
 ---
 
-## 🌟 Architecture & System Division
+## 🌟 Advanced Features & Functional Division
 
-| Layer | System | Device / Technology | Description |
+| Layer | System / Tool | Tech Stack | Functional Capabilities |
 | :--- | :--- | :--- | :--- |
-| **Local Model** | Voice Chat & Optical VLM | `Cosmos-Reason2-2B-Q4_K_M` (`llama-server`) | Real-time speech interaction, vision perception (`/dev/video0`), and instant conversational Q&A. |
-| **Local RAG** | Vector Store Knowledge Base | `ChromaDB` / `app/rag.py` | Local domain knowledge base querying markdown files in `./knowledge_base/`. |
-| **Short-Term Memory**| Rolling Conversation History | Memory Deque (`assistant.py`) | Preserves multi-turn chat context across local and cloud turns. |
-| **Long-Term Memory** | User Profile & Permanent Context | `user_profile.md` + Vector Store | Permanent user background and preferences. |
-| **Cloud Agent** | OpenClaw Agent Gateway | OpenClaw / Groq Cloud | Complex multi-step reasoning, NotebookLM notebook queries, and cloud tasks. |
-| **Desktop Automation**| GUI Cursor & Terminal Control | `pyautogui` / `app/tools/cursor_control.py` | Mouse cursor control, video playback thumbnail clicking, and terminal execution. |
-| **Voice Pipelines** | STT & TTS | `faster-whisper` (GPU) + `Kokoro-ONNX` (CPU) | High-speed STT transcription and natural TTS voice synthesis with WebRTC AEC. |
+| **Local Model** | Voice & Optical VLM | `Cosmos-Reason2-2B-Q4_K_M` (`llama-server`) | Real-time voice conversation, camera vision perception (`/dev/video0`), desktop screenshot VLM inspection. |
+| **Local RAG** | Vector Store Memory | `ChromaDB` / `app/rag.py` | Local domain knowledge base querying markdown documentation in `./knowledge_base/`. |
+| **System Telemetry**| Diagnostics Engine | `psutil` / `app/tools/cursor_control.py` | Live monitoring of CPU, RAM, GPU load, and Jetson Orin Nano thermals. |
+| **Short-Term Memory**| Rolling Conversation History | Deque Buffer (`assistant.py`) | Preserves multi-turn chat history across local and cloud interactions. |
+| **Long-Term Memory**| Permanent Profile & RAG | `user_profile.md` + ChromaDB | Stores permanent user background, preferences, and project details. |
+| **Cloud Agent** | OpenClaw Agent Gateway | OpenClaw / Groq Cloud | Multi-step agentic execution, NotebookLM notebook queries, and cloud tasks. |
+| **Desktop Automation**| GUI Cursor & Media Agent | `PyAutoGUI` / `python-xlib` | Mouse cursor navigation, YouTube video thumbnail clicking, scrolling, and typing. |
+| **Code Runner** | Python & Terminal Agent | `x-terminal-emulator` / Subprocess | Autonomous writing and execution of Python scripts and terminal commands. |
+| **Voice Engine** | STT & TTS Pipelines | `faster-whisper` + `Kokoro-ONNX` | Ultra-fast GPU transcription + natural CPU voice synthesis with WebRTC AEC. |
 
 ---
 
-## 📊 System Architecture & Data Flow
+## 📊 System Architecture & Workflow Flowchart
 
 ```mermaid
 graph TD
@@ -42,13 +46,14 @@ graph TD
     App -- Query + Context --> Router{Semantic Router\napp/llm.py}
     
     %% Routing Decisions
-    Router -- "Voice / Vision / Local RAG" --> LocalVLM[Local VLM\nCosmos-Reason2-2B]
+    Router -- "Voice / Vision / Local RAG / Telemetry" --> LocalVLM[Local VLM & Telemetry\nCosmos-Reason2-2B]
     Router -- "Complex / NotebookLM / Automation" --> CloudAgent[OpenClaw Cloud Agent Gateway\nGroq / Node.js]
     
     %% Cloud Agent Tools
     CloudAgent -- NotebookLM Queries --> NotebookLM[NotebookLM API / Notebook Integration]
-    CloudAgent -- GUI Cursor Control --> Cursor[Desktop Cursor Agent\napp/tools/cursor_control.py]
-    CloudAgent -- Terminal Execution --> Term[Terminal Commands\nx-terminal-emulator]
+    CloudAgent -- GUI Cursor Automation --> Cursor[Desktop Cursor Agent\napp/tools/cursor_control.py]
+    CloudAgent -- Python & Terminal Execution --> Term[Python & Terminal Agent\nx-terminal-emulator]
+    CloudAgent -- Web Search & Browsing --> Web[Web Search Agent\nxdg-open / Google Search]
     
     %% Outputs
     LocalVLM -- Speech Response --> TTS[Kokoro TTS\nCPU ONNX]
@@ -60,25 +65,19 @@ graph TD
 
 ---
 
-## 🧠 Routing & Memory Logic
+## 🧠 Advanced Tool & Voice Commands
 
-1. **Local Model Execution (`LOCAL`)**:
-   - **Voice & Chat**: Conversational queries and instant responses.
-   - **Optical VLM**: Vision queries (`"vlm"`, `"βλέπεις"`, `"δες"`, `"περιβάλλον"`) attach video frames from `/dev/video0`.
-   - **Local Knowledge RAG**: Injects retrieved context from `./knowledge_base/` markdown files.
+### 1. Local Voice & Diagnostic Commands
+- **"System status" / "Telemetry"**: Returns live CPU, RAM, and GPU load.
+- **"Screenshot" / "What's on my screen"**: Captures current desktop image and feeds it to the local VLM for visual inspection.
+- **"Who are you" / Conversational queries**: Answered locally via `Cosmos-Reason2-2B` with local RAG memory.
 
-2. **Cloud Agent Execution (`CLOUD`)**:
-   - **NotebookLM Queries**: Connects to NotebookLM to query specific user notebook information.
-   - **Desktop Cursor Automation**: Controls the mouse cursor, moves to YouTube video thumbnails, and clicks play.
-   - **Terminal Execution**: Spawns terminal windows and runs commands.
-
----
-
-## 🛑 NVIDIA Jetson Orin Nano Optimizations
-
-- **Memory Gating**: CPU-bound models (`Silero VAD`, `Kokoro TTS`) limited to 1–2 threads (`torch.set_num_threads(1)`).
-- **CUDA CTranslate2**: Custom CUDA build for `faster-whisper` on Jetson Ampere GPU.
-- **Proxy Bypass**: `trust_env=False` on `httpx.Client` for local socket connections.
+### 2. Cloud Agent & Automation Commands
+- **"Open YouTube and play [song]"**: Moves cursor to video thumbnail on display and clicks play.
+- **"Search online for [topic]"**: Opens browser web search for the query.
+- **"Execute python [code]"**: Writes python code to file and executes it autonomously.
+- **"Open terminal and run [command]"**: Spawns terminal window and runs command.
+- **"Use NotebookLM and analyze [topic]"**: Connects to NotebookLM for deep notebook context retrieval.
 
 ---
 
