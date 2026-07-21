@@ -364,6 +364,15 @@ class OpenClawLLM(LLM):
                     yield (f"Opening YouTube for '{query}' on display via Agent cursor.", {"done": True})
                 return
 
+            if "create gui" in p_lower or "ftiaxe" in p_lower or "build app" in p_lower or "gui for files" in p_lower or "φτιάξε" in p_lower or "gui" in p_lower:
+                try:
+                    from app.tools.app_generator import generate_jetson_file_manager_gui
+                    res_msg = generate_jetson_file_manager_gui()
+                    yield (f"🧠 OpenClaw Application Generator: {res_msg}", {"done": True})
+                except Exception as ex:
+                    yield (f"Error generating GUI application: {ex}", {"done": True})
+                return
+
             if "search online" in p_lower or "find article" in p_lower or "search web" in p_lower or "google" in p_lower:
                 query = prompt.replace("search online", "").replace("find article", "").replace("search web", "").replace("google", "").strip()
                 from app.tools.cursor_control import open_browser_search
