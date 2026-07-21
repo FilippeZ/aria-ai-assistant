@@ -332,18 +332,6 @@ class OpenClawLLM(LLM):
         
         if route == "CLOUD":
             p_lower = prompt.lower()
-            if "notebooklm" in p_lower or "notebook" in p_lower or "notes" in p_lower:
-                yield ("Connecting to NotebookLM MCP Tool to analyze files...", {"done": False})
-                try:
-                    import asyncio
-                    from app.tools.search_my_notes import search_my_notes
-                    query_term = prompt.replace("use notebooklm and do an analysis in the last notebook", "").replace("ti leei", "").strip() or prompt
-                    mcp_res = asyncio.run(search_my_notes(query_term))
-                    if mcp_res:
-                        yield (f"\n🧠 MCP NotebookLM Analysis:\n{mcp_res}", {"done": True})
-                        return
-                except Exception as ex:
-                    print(f"MCP NotebookLM tool fallback error: {ex}")
 
             if "youtube" in p_lower or ("play" in p_lower and "song" in p_lower) or "click" in p_lower:
                 query = prompt.replace("open youtube and play", "").replace("open youtube", "").replace("play", "").replace("click it to hear it", "").replace("click", "").strip()

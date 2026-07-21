@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Verification Script for User Requested Use Cases:
-1. Open YouTube and play Greek song of Pantelidis (Agent Action).
-2. Use NotebookLM via MCP for agent file analysis.
-3. Optical / Local VLM vision model check (sees user and environment).
+Verification Script for Hybrid AI Assistant Architecture:
+1. Open YouTube and play Greek song of Pantelidis (Agent Action via Cursor).
+2. Cloud Agent NotebookLM analysis query.
+3. Optical / Local VLM vision model check + Local RAG memory.
 """
 
 import sys
@@ -20,7 +20,7 @@ from assistant import needs_vision
 
 def run_usecase_1():
     print("\n" + "="*60)
-    print("🎬 USE CASE 1: Open YouTube and play Greek song of Pantelidis (Agent Action)")
+    print("🎬 USE CASE 1: Open YouTube & Play Song via Cursor Automation")
     print("="*60)
     prompt = "open youtube and play greek song of pantelidis"
     
@@ -47,7 +47,7 @@ def run_usecase_1():
 
 def run_usecase_2():
     print("\n" + "="*60)
-    print("📚 USE CASE 2: NotebookLM via MCP for Agent File Reading")
+    print("📚 USE CASE 2: Cloud Agent NotebookLM Analysis Query")
     print("="*60)
     query = "use notebooklm and do an analysis in the last notebook ti leei"
     
@@ -61,7 +61,7 @@ def run_usecase_2():
     
     print(f"User Query: '{query}'")
     route = llm._decide_routing(query)
-    print(f"Routing Decision: {route} (OpenClaw Agent + MCP NotebookLM)")
+    print(f"Routing Decision: {route} (OpenClaw Cloud Agent)")
     
     print("Response Stream: ", end="", flush=True)
     full_resp = ""
@@ -74,7 +74,7 @@ def run_usecase_2():
 
 def run_usecase_3():
     print("\n" + "="*60)
-    print("👁️ USE CASE 3: Optical VLM Model Perception (Local Vision Check)")
+    print("👁️ USE CASE 3: Optical VLM Model Perception & Local RAG Memory")
     print("="*60)
     prompt = "tsekare an to local modelo einai ontos vlm kai me vlepei kai vlepei to perivelon den einai mono llm"
     
