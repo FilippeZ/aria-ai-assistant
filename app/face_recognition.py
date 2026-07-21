@@ -124,15 +124,15 @@ class FaceRecognizer:
         return "Unknown", best_dist, 0.0
 
     def recognize_in_image(self, image):
-        """Finds faces and identifies them. Returns list of tuples: (name, confidence)."""
-        detected = {}
+        """Finds faces and identifies them. Returns list of tuples: (name, confidence, box)."""
+        detected = []
         faces = self.detect_faces(image)
         for (startX, startY, endX, endY) in faces:
             face_roi = image[startY:endY, startX:endX]
             embedding = self.get_embedding(face_roi)
             if embedding is not None:
                 name, dist, conf = self.identify(embedding)
-                if name != "Unknown":
-                    if name not in detected or conf > detected[name]:
-                        detected[name] = conf
-        return list(detected.items())
+                detected.append((name, conf, (startX, startY, endX, endY)))
+            else:
+                detected.append(("Unknown", 0.0, (startX, startY, endX, endY)))
+        return detected

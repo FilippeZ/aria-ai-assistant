@@ -41,7 +41,7 @@ class LlamaCppEmbeddings(EmbeddingFunction):
         if self._dim:
             return self._dim
         try:
-            with httpx.Client(timeout=10.0) as c:
+            with httpx.Client(timeout=1.5, trust_env=False) as c:
                 r = c.post(f"{self.base_url}/v1/embeddings", json={"model": self.model, "input": "dim"})
                 if r.status_code == 200:
                     vec = (r.json().get("data") or [{}])[0].get("embedding", [])
@@ -50,26 +50,38 @@ class LlamaCppEmbeddings(EmbeddingFunction):
                         return self._dim
         except Exception:
             pass
-        return 384
+        self._dim = 384
+        return self._dim
+
+    def _fallback_vector(self, text: str) -> List[float]:
+        dim = self._dimension()
+        vec = [0.0] * dim
+        for i, char in enumerate(text[:dim]):
+            vec[i % dim] += (ord(char) % 100) / 100.0
+        return vec
 
     def __call__(self, input: Documents) -> Embeddings:
         if not input:
             return []
         out = []
-        with httpx.Client(timeout=self.timeout) as c:
-            for text in input:
-                try:
-                    r = c.post(f"{self.base_url}/v1/embeddings", json={"model": self.model, "input": text})
-                    if r.status_code == 200:
-                        items = r.json().get("data") or []
-                        vec = items[0].get("embedding", []) if items else []
-                        if self._dim is None and vec:
-                            self._dim = len(vec)
-                        out.append(vec)
-                    else:
-                        out.append([0.0] * self._dimension())
-                except Exception:
-                    out.append([0.0] * self._dimension())
+        try:
+            with httpx.Client(timeout=2.0, trust_env=False) as c:
+                for text in input:
+                    try:
+                        r = c.post(f"{self.base_url}/v1/embeddings", json={"model": self.model, "input": text})
+                        if r.status_code == 200:
+                            items = r.json().get("data") or []
+                            vec = items[0].get("embedding", []) if items else []
+                            if vec:
+                                out.append(vec)
+                            else:
+                                out.append(self._fallback_vector(text))
+                        else:
+                            out.append(self._fallback_vector(text))
+                    except Exception:
+                        out.append(self._fallback_vector(text))
+        except Exception:
+            out = [self._fallback_vector(t) for t in input]
         return out
 
 

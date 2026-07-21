@@ -21,8 +21,8 @@ class LLMConfig:
     max_tokens: int = 512
     temperature: float = 0.7
     timeout: float = 120.0
-    system_prompt: str = "Είσαι ένας έξυπνος προσωπικός βοηθός. Απάντα σύντομα και άμεσα."
-    system_prompt_no_rag: str = "Είσαι ένας έξυπνος προσωπικός βοηθός. Απάντα από τις γνώσεις σου."
+    system_prompt: str = "Είσαι η Aria, η έξυπνη προσωπική βοηθός του Φίλιππου (Philip). Απάντα σύντομα και άμεσα."
+    system_prompt_no_rag: str = "Είσαι η Aria, η έξυπνη προσωπική βοηθός του Φίλιππου (Philip). Απάντα από τις γνώσεις σου."
 
 
 @dataclass
@@ -39,8 +39,8 @@ class TTSConfig:
     voice: str = "af_sarah"
     speed: float = 1.0
     lang: str = "en-us"
-    first_chunk_words: int = 3
-    max_chunk_words: int = 8
+    first_chunk_words: int = 12
+    max_chunk_words: int = 30
 
 
 @dataclass

@@ -27,7 +27,7 @@ llm:
     Never use emojis, asterisks, bullet points, markdown, or special formatting.
 
 stt:
-  model: "small"                      # tiny, base, small, medium
+  model: "base"                      # tiny, base, small, medium
   device: "cuda"
   compute_type: "int8"
   language: "en"                      # "en" English, "" auto-detect
@@ -37,7 +37,7 @@ tts:
   voice: "af_sarah"                   # kokoro voices: af_sarah, af_bella, am_adam, bf_emma, bm_george
   speed: 1.05
   lang: "en-us"
-  first_chunk_words: 8                # words before first TTS chunk fires (lower = faster start)
+  first_chunk_words: 4                # words before first TTS chunk fires (lower = faster start)
   max_chunk_words: 12                  # max words per TTS chunk
 
 audio:
@@ -48,8 +48,8 @@ audio:
   echo_cancellation: true             # WebRTC AEC
 
 vad:
-  silero_threshold: 0.30              # speech probability threshold (lower = more sensitive)
-  speech_threshold: 0.025             # RMS pre-filter
+  silero_threshold: 0.15              # speech probability threshold (lower = more sensitive)
+  speech_threshold: 0.005             # RMS pre-filter
   silence_duration_ms: 450            # ms of silence to detect end of utterance
   lookback_ms: 250                    # ms of audio before speech starts
   max_speech_secs: 15                 # max utterance length

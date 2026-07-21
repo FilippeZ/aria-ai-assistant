@@ -75,7 +75,11 @@ def main():
                         continue
                     new_providers.append(p)
                 providers = ["CPUExecutionProvider"]
-            return original_InferenceSession(path, providers=providers, **kwargs)
+            
+            sess_options = ort.SessionOptions()
+            sess_options.intra_op_num_threads = 2
+            sess_options.inter_op_num_threads = 1
+            return original_InferenceSession(path, sess_options=sess_options, providers=providers, **kwargs)
         ort.InferenceSession = memory_limited_session
 
         old_stdout = sys.stdout

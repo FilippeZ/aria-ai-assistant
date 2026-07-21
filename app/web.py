@@ -51,6 +51,7 @@ class Broadcaster:
         self._ptt.set()
         self._speaker_getter: Optional[Callable[[], dict]] = None
         self._speaker_setter: Optional[Callable[[str], dict]] = None
+        self.on_ptt_toggle: Optional[Callable[[bool], None]] = None
 
     def set_loop(self, loop: asyncio.AbstractEventLoop):
         self._loop = loop
@@ -77,6 +78,11 @@ class Broadcaster:
             self._ptt.set()
         else:
             self._ptt.clear()
+        if self.on_ptt_toggle:
+            try:
+                self.on_ptt_toggle(active)
+            except Exception:
+                pass
         self.send({"type": "ptt_state", "active": active})
 
     def configure_speakers(

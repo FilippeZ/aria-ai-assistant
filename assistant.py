@@ -17,6 +17,8 @@ import sys
 import threading
 import time
 import queue
+import cv2
+import base64
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -24,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from app.config import Config
 from app.audio import find_alsa_device
 from app.stt import STT
-from app.llm import LLM
+from app.llm import LLM, OpenClawLLM
 from app.tts import create_tts
 from app.pipeline import (
     SAMPLE_RATE, MicRecorder, vad_loop, load_silero,
@@ -38,19 +40,22 @@ from rich.panel import Panel
 
 console = Console()
 
+# Global state for bounding boxes
+last_detected_faces = []
+
 # ── Vision keyword detection ──────────────────────────────────────────────
 
 VISION_KEYWORDS_EL = [
     "τι βλέπεις", "τι βλέπεσαι", "τι υπάρχει", "τι έχει",
-    "περίγραψε", "περιγράψτε", "κοίτα", "κοίτα γύρω",
-    "μπροστά σου", "μπροστά", "γύρω σου", "το δωμάτιο",
+    "περίγραψε", "περιγράψτε", "κοίτα", "κοίτα γύρω", "κοίταξε", "δες",
+    "μπροστά σου", "μπροστά", "γύρω σου", "το δωμάτιο", "περιβάλλον",
     "η εικόνα", "την εικόνα", "χρώμα", "χρώματα", "πόσα",
-    "βλέπω", "τι είναι", "ποιος", "ποια",
+    "βλέπω", "βλέπεις", "με βλέπεις", "τι είναι", "ποιος", "ποια", "κάμερα", "vlm",
 ]
 VISION_KEYWORDS_EN = [
-    "what do you see", "describe", "look at", "camera",
+    "what do you see", "can you see", "see me", "see", "describe", "look at", "look", "camera",
     "in front", "what's there", "show me", "what color",
-    "how many", "what is", "who is",
+    "how many", "what is", "who is", "environment", "vlm",
 ]
 
 def needs_vision(text: str) -> bool:
@@ -70,6 +75,19 @@ def _stats_thread(broadcaster, config, models_info: dict):
         time.sleep(5)
         stats = get_system_stats()
         broadcaster.send({"type": "info", "platform": platform, "models": models_info})
+        # Check service status (Ollama & OpenClaw)
+        try:
+            import subprocess
+            ollama_ok = subprocess.run(["systemctl", "--user", "is-active", "--quiet", "ollama"], capture_output=True).returncode == 0
+            if not ollama_ok:
+                ollama_ok = subprocess.run(["systemctl", "is-active", "--quiet", "ollama"], capture_output=True).returncode == 0
+            openclaw_ok = subprocess.run(["systemctl", "--user", "is-active", "--quiet", "openclaw-gateway"], capture_output=True).returncode == 0
+            if not openclaw_ok:
+                openclaw_ok = subprocess.run(["pgrep", "-f", "openclaw gateway"], capture_output=True).returncode == 0
+        except Exception:
+            ollama_ok = False
+            openclaw_ok = False
+
         broadcaster.send({
             "type": "stats",
             "cpu": stats.cpu_percent,
@@ -77,6 +95,8 @@ def _stats_thread(broadcaster, config, models_info: dict):
             "ram_total": stats.ram_total_mb / 1024,
             "gpu": stats.gpu_percent,
             "platform": platform,
+            "ollama_active": ollama_ok,
+            "openclaw_active": openclaw_ok,
         })
 
 
@@ -84,12 +104,22 @@ def _stats_thread(broadcaster, config, models_info: dict):
 
 def _frame_thread(cam, broadcaster, fps: float):
     """Background thread: streams camera frames to web clients."""
+    global last_detected_faces
     interval = 1.0 / fps
     while cam.health_check():
         if broadcaster.client_count > 0:
-            b64 = cam.read_live()
-            if b64:
-                broadcaster.send({"type": "frame", "data": b64})
+            frame = cam.latest_raw(copy=True)
+            if frame is not None:
+                for name, conf, box in last_detected_faces:
+                    color = (0, 255, 0) if name.lower() == "philip" else (255, 165, 0)
+                    cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), color, 2)
+                    label = f"{name}: {conf:.1f}%" if name.lower() != "unknown" else "Face"
+                    cv2.putText(frame, label, (box[0], max(0, box[1]-10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                
+                ok, jpg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                if ok:
+                    b64 = base64.b64encode(jpg.tobytes()).decode("ascii")
+                    broadcaster.send({"type": "frame", "data": b64})
         time.sleep(interval)
 
 
@@ -97,8 +127,9 @@ def _frame_thread(cam, broadcaster, fps: float):
 
 def _face_monitor_thread(cam, face_recognizer, tts, mic, assistant_active, broadcaster):
     """Background thread: proactively greets known faces and activates assistant."""
+    global last_detected_faces
     last_greeted = {}
-    greeting_cooldown = 120  # seconds (2 minutes cooldown)
+    greeting_cooldown = 36000  # seconds (10 hours cooldown)
 
     while cam.health_check():
         # Sleep longer if already active to save CPU for VAD/STT
@@ -112,12 +143,13 @@ def _face_monitor_thread(cam, face_recognizer, tts, mic, assistant_active, broad
         frame = cam.latest_raw()
         if frame is not None and face_recognizer and tts:
             detected = face_recognizer.recognize_in_image(frame)
+            last_detected_faces = detected
             now = time.time()
             
             best_name = None
             best_conf = 0.0
             
-            for name, conf in detected:
+            for name, conf, box in detected:
                 if name.lower() != "unknown" and conf > best_conf:
                     best_name = name
                     best_conf = conf
@@ -247,7 +279,7 @@ def main():
 
     silero_model = load_silero(console)
 
-    llm = LLM(
+    llm = OpenClawLLM(
         model=config.llm.model,
         base_url=config.llm.base_url,
         backend=config.llm.backend,
@@ -257,7 +289,8 @@ def main():
         timeout=config.llm.timeout,
     )
     llm.load()
-    console.print(f"  ✓ LLM: {llm.model or 'auto'} @ {config.llm.base_url}")
+    llm.warmup()
+    console.print(f"  ✓ Agent: OpenClaw @ {llm.base_url}")
 
     tts = None
     if use_tts:
@@ -322,6 +355,7 @@ def main():
             getter=mic.speaker_state,
             setter=mic.select_speaker,
         )
+        broadcaster.on_ptt_toggle = lambda active: assistant_active.set() if active else None
 
     # ── Proactive Greeting Thread ─────────────────────────────
     assistant_active = threading.Event()
@@ -344,6 +378,8 @@ def main():
 
     if broadcaster:
         broadcaster.send({"type": "status", "stage": "listening"})
+
+    chat_history = []
 
     # ── Main conversation loop ────────────────────────────────
     try:
@@ -395,7 +431,7 @@ def main():
                 if latest_frame is not None and face_recognizer:
                     detected = face_recognizer.recognize_in_image(latest_frame)
                     if detected:
-                        names_str = ", ".join([f"{n} ({c:.1f}%)" for n, c in detected])
+                        names_str = ", ".join([f"{n} ({c:.1f}%)" for n, c, _ in detected])
                         system_prompt += f"\n\nContext: You can currently see {names_str}."
                         console.print(f"  [dim]👤 Recognized: {names_str}[/dim]")
 
@@ -407,6 +443,10 @@ def main():
                         segment.end_time,
                         max_frames=config.vision.frames,
                     )
+                    if not images_b64:
+                        single = cam.capture_single()
+                        if single:
+                            images_b64 = [single]
                     system_prompt = config.vision.system_prompt
                     if detected_names:
                         names_str = ", ".join(detected_names)
@@ -420,6 +460,11 @@ def main():
                 broadcaster.send({"type": "status", "stage": "thinking"})
 
             pa_sink = mic.get_pa_sink()
+            
+            # Combine vision few_shot and chat history
+            current_few_shot = list(chat_history)
+            if images_b64 and config.vision.few_shot:
+                current_few_shot.extend(config.vision.few_shot)
 
             # Stream LLM and simultaneously speak
             full_response, elapsed, ttft = stream_and_speak(
@@ -429,12 +474,18 @@ def main():
                 system_prompt,
                 pa_sink=pa_sink,
                 images_b64=images_b64,
-                few_shot=config.vision.few_shot if images_b64 else None,
+                few_shot=current_few_shot if current_few_shot else None,
                 first_chunk_words=config.tts.first_chunk_words,
                 max_chunk_words=config.tts.max_chunk_words,
                 broadcaster=broadcaster,
             )
             console.print()
+            
+            if full_response:
+                chat_history.append({"role": "user", "content": prompt})
+                chat_history.append({"role": "assistant", "content": full_response})
+                if len(chat_history) > 20: # keep last 10 exchanges
+                    chat_history = chat_history[-20:]
 
             if broadcaster:
                 broadcaster.send({

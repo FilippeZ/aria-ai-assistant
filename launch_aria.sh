@@ -7,7 +7,11 @@
 
 cd /home/filippos/reachy-mini-jetson-assistant
 
-# ── Load Node.js 24 via nvm (required for OpenClaw) ─────────────
+export NO_PROXY="localhost,127.0.0.1,0.0.0.0,::1"
+export no_proxy="localhost,127.0.0.1,0.0.0.0,::1"
+
+# ── Load Node.js 24 via nvm or fnm (required for OpenClaw) ─────────────
+export PATH="/run/user/1000/fnm_multishells/12806_1784650791471/bin:$HOME/.local/share/fnm:$PATH"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 nvm use 24 --silent 2>/dev/null || true
@@ -23,9 +27,8 @@ if curl -s --max-time 2 http://127.0.0.1:8080/health > /dev/null 2>&1; then
 elif docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^assistant-llm$"; then
     echo "   ✅ LLM container 'assistant-llm' is running (warming up)."
 else
-    echo "   ⚠️  LLM server not detected on port 8080."
-    echo "   ➡️  Start it with: ./run_llama_cpp.sh ./models/Cosmos-Reason2-2B-Q4_K_M.gguf"
-    echo "   Continuing without confirming LLM is ready..."
+    echo "   ⚠️  LLM server not detected on port 8080. Auto-starting server..."
+    CTX=2048 CPU_ONLY=1 ./run_llama_cpp.sh ./models/Cosmos-Reason2-2B-Q4_K_M.gguf
 fi
 
 # ── Step 2: Start OpenClaw Gateway ──────────────────────────────
@@ -33,6 +36,7 @@ echo ""
 echo "🦅 Starting OpenClaw Gateway (port 19000)..."
 pkill -f "openclaw gateway run" 2>/dev/null || true
 sleep 1
+export NODE_COMPILE_CACHE="$HOME/.npm/.cache/nodejs-compile-cache"
 nohup openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 &
 OC_PID=$!
 sleep 3

@@ -38,14 +38,14 @@ class STT:
     def load(self) -> bool:
         try:
             from faster_whisper import WhisperModel
-            self._model = WhisperModel(self.model_name, device=self.device, compute_type=self.compute_type)
+            self._model = WhisperModel(self.model_name, device=self.device, compute_type=self.compute_type, cpu_threads=2)
             return True
         except Exception as e:
             print(f"faster-whisper load error: {e}")
             try:
                 from faster_whisper import WhisperModel
                 print("Falling back to CPU...")
-                self._model = WhisperModel(self.model_name, device="cpu", compute_type="auto")
+                self._model = WhisperModel(self.model_name, device="cpu", compute_type="int8", cpu_threads=2)
                 self.device = "cpu"
                 return True
             except Exception as e2:

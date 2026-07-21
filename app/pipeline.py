@@ -398,6 +398,7 @@ class SileroVAD:
     def __init__(self):
         from silero_vad import load_silero_vad
         import torch
+        torch.set_num_threads(1)
         # Use PyTorch (CPU) instead of ONNX to avoid CUDA memory fragmentation and OOMs
         self._model = load_silero_vad(onnx=False)
         self._torch = torch
@@ -494,8 +495,7 @@ class MicRecorder:
             self.console.print(f"  PA source: {self.pa_source.split('.')[-2]}")
         else:
             self.console.print("  [yellow]PA source not found, using ALSA direct[/yellow]")
-            kill_pulseaudio()
-            time.sleep(0.5)
+            time.sleep(0.1)
 
         if not self._start_capture():
             if self.aec and self.aec.active:

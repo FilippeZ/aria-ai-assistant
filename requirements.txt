@@ -1,4 +1,4 @@
-# Reachy Mini Jetson Assistant
+# Aria Jetson Assistant
 # Tested on: Jetson Orin Nano 8GB, JetPack 6, Python 3.10
 
 # Core
@@ -31,12 +31,9 @@ opencv-python-headless>=4.8.0
 # RAG — vector store + embeddings
 chromadb>=0.4.0
 
-# Web UI (optional — only needed for run_web_vision_chat.py)
+# Web UI
 fastapi>=0.109.1  # excludes Content-Type header ReDoS-affected releases
 uvicorn>=0.24.0
-
-# Reachy Mini SDK (robot control)
-# Installed separately: pip install reachy-mini
 
 # Jetson-specific (install separately, see README):
 #   pip install onnxruntime-gpu --extra-index-url https://pypi.jetson-ai-lab.io/jp6/cu126
