@@ -76,12 +76,27 @@ def extract_youtube_query(text: str) -> str:
         return "popular music top hits"
     return text
 
-def _clean_query(text: str) -> str:
+def extract_web_query(text: str) -> str:
+    import re
+    if "Question:" in text:
+        text = text.split("Question:", 1)[-1].strip()
+    text = re.sub(r"User Identity Profile.*?(?:Question:|\n\n|$)", "", text, flags=re.DOTALL|re.IGNORECASE)
+    text = re.sub(r"Answer concisely using the following information:.*?(?:Question:|\n\n|$)", "", text, flags=re.DOTALL|re.IGNORECASE)
+    text = re.sub(r"Question:", "", text, flags=re.IGNORECASE).strip()
+    
+    # Remove prefix action phrases
+    text = re.sub(r"^(?:oh!|oh|hey|aria|please|can you|could you)?\s*", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"^(?:search\s+online\s+for|search\s+web\s+for|search\s+for|search\s+online|find\s+article|find\s+a\s+recipe|look\s+up\s+online|google|find)\s*", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"^(?:the|a|an|to|ton|ti|tin|το|τον|τη|την)\s+", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\bPhilip\b", "", text, flags=re.IGNORECASE).strip(". ,:-")
+    return text
+
+def _clean_youtube_query(text: str) -> str:
     return extract_youtube_query(text)
 
 def open_youtube_and_click_play(search_query: str) -> str:
     """Open YouTube, search query, move cursor to top video thumbnail, and click play."""
-    search_query = _clean_query(search_query)
+    search_query = _clean_youtube_query(search_query)
     import urllib.parse
     url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(search_query)}"
     subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -97,7 +112,7 @@ def open_youtube_and_click_play(search_query: str) -> str:
 
 def open_browser_search(query: str) -> str:
     """Open web browser search query."""
-    query = _clean_query(query)
+    query = extract_web_query(query)
     import urllib.parse
     url = f"https://www.google.com/search?q={urllib.parse.quote(query)}"
     subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

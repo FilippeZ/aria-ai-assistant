@@ -458,20 +458,14 @@ class OpenClawLLM(LLM):
                             yield ("Task completed by the Agent.", {"done": True})
                             return
                 else:
-                    print(f"OpenClaw Agent CLI info: {result.stderr.strip()}")
+                    err_msg = result.stderr.strip() or result.stdout.strip()
+                    print(f"OpenClaw Agent CLI info: {err_msg}")
+                    yield (f"🧠 OpenClaw Agent encountered an issue: {err_msg}", {"done": True})
+                    return
             except Exception as e:
                 print(f"OpenClaw Agent CLI exception: {e}")
-
-            # Fallback to direct model completion stream if agent CLI is not configured
-            yield from super().generate_stream(
-                prompt=cloud_prompt,
-                system_prompt=system_prompt,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                images_b64=images_b64,
-                few_shot=few_shot
-            )
-            return
+                yield (f"🧠 Failed to connect to OpenClaw Agent: {str(e)}", {"done": True})
+                return
 
         # Use the underlying LLM stream implementation (low latency)
         yield from super().generate_stream(
