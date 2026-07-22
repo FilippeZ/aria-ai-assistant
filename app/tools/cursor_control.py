@@ -50,12 +50,16 @@ def take_screenshot(filename: str = "/tmp/aria_screenshot.png") -> str:
     return filename
 
 def _clean_query(text: str) -> str:
+    import re
     if "Question:" in text:
         text = text.split("Question:", 1)[-1].strip()
-    if "User Identity Profile" in text:
-        lines = [l for l in text.splitlines() if not l.startswith("- ") and "User Identity Profile" not in l]
-        text = " ".join(lines).strip()
-    return text.strip() or "greek song pantelidis"
+    text = re.sub(r"User Identity Profile.*?(?:Question:|\n\n|$)", "", text, flags=re.DOTALL|re.IGNORECASE)
+    text = re.sub(r"Answer concisely using the following information:.*?(?:Question:|\n\n|$)", "", text, flags=re.DOTALL|re.IGNORECASE)
+    text = re.sub(r"Question:", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"^(?:oh!|oh|hey|aria|please)?\s*(?:open youtube and play|open youtube|play song|play|click it to hear it|click|search for|search|find)\s*", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\bPhilip\b", "", text, flags=re.IGNORECASE).strip()
+    text = text.strip(". ,")
+    return text if text else "greek song pantelidis"
 
 def open_youtube_and_click_play(search_query: str) -> str:
     """Open YouTube, search query, move cursor to top video thumbnail, and click play."""

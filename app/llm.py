@@ -273,11 +273,12 @@ class OpenClawLLM(LLM):
     @staticmethod
     def _clean_user_prompt(prompt: str) -> str:
         text = prompt
+        import re
         if "Question:" in text:
             text = text.split("Question:", 1)[-1].strip()
-        if "User Identity Profile" in text:
-            lines = [l for l in text.splitlines() if not l.startswith("- ") and "User Identity Profile" not in l]
-            text = " ".join(lines).strip()
+        text = re.sub(r"User Identity Profile.*?(?:Question:|\n\n|$)", "", text, flags=re.DOTALL|re.IGNORECASE)
+        text = re.sub(r"Answer concisely using the following information:.*?(?:Question:|\n\n|$)", "", text, flags=re.DOTALL|re.IGNORECASE)
+        text = re.sub(r"Question:", "", text, flags=re.IGNORECASE)
         return text.strip() or prompt
 
     def _decide_routing(self, prompt: str, images_b64: Optional[list[str]] = None) -> str:
