@@ -5,10 +5,21 @@
 #   2. Starts the OpenClaw Gateway (agent layer)
 #   3. Launches the Aria pipeline (STT/TTS/Vision/Web UI)
 
-cd /home/filippos/reachy-mini-jetson-assistant
+cd "$(dirname "$0")"
 
 export NO_PROXY="localhost,127.0.0.1,0.0.0.0,::1"
 export no_proxy="localhost,127.0.0.1,0.0.0.0,::1"
+
+# ── Cleanup Handler on Exit ───────────────────────────────────────
+cleanup() {
+    echo ""
+    echo "🧹 Shutting down Aria Assistant & releasing all memory and ports..."
+    pkill -f "openclaw gateway run" 2>/dev/null || true
+    fuser -k -9 8090/tcp 2>/dev/null || true
+    fuser -k -9 19000/tcp 2>/dev/null || true
+    echo "✅ Ports 8090 & 19000 released. All RAM and GPU memory freed!"
+}
+trap cleanup INT TERM EXIT
 
 # ── Load Node.js 24 via nvm or fnm (required for OpenClaw) ─────────────
 export PATH="/run/user/1000/fnm_multishells/12806_1784650791471/bin:$HOME/.local/share/fnm:$PATH"
@@ -54,4 +65,5 @@ echo "   Web UI: http://0.0.0.0:8090"
 echo "   OpenClaw: http://0.0.0.0:19000"
 echo "   Press Ctrl+C to stop."
 echo "=========================================="
+(sleep 4 && (xdg-open "http://localhost:8090" || google-chrome "http://localhost:8090" || firefox "http://localhost:8090")) >/dev/null 2>&1 &
 ./start.sh

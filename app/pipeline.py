@@ -797,8 +797,16 @@ def stream_and_speak(
     tts_thread = None
     if tts_obj:
         tts_q = queue.Queue()
+
+        def _on_start():
+            if broadcaster:
+                broadcaster.send({"type": "status", "stage": "speaking"})
+
         tts_thread = threading.Thread(
-            target=tts_player, args=(tts_obj, tts_q, pa_sink), daemon=True,
+            target=tts_player,
+            args=(tts_obj, tts_q, pa_sink),
+            kwargs={"on_audio_start": _on_start},
+            daemon=True,
         )
         tts_thread.start()
 

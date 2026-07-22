@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Aria
+Comment=Launch Aria Hybrid AI Voice & Vision Assistant
+Exec=/home/filippos/aria-ai-assistant/launch_aria.sh
+Icon=/home/filippos/aria-ai-assistant/aria.jpeg
+Path=/home/filippos/aria-ai-assistant
+Terminal=true
+StartupNotify=true
+Categories=Development;AudioVideo;Utility;AI;
+Keywords=AI;Assistant;Aria;Jetson;

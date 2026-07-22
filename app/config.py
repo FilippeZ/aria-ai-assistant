@@ -21,8 +21,8 @@ class LLMConfig:
     max_tokens: int = 512
     temperature: float = 0.7
     timeout: float = 120.0
-    system_prompt: str = "Είσαι η Aria, η έξυπνη προσωπική βοηθός του Φίλιππου (Philip). Απάντα σύντομα και άμεσα."
-    system_prompt_no_rag: str = "Είσαι η Aria, η έξυπνη προσωπική βοηθός του Φίλιππου (Philip). Απάντα από τις γνώσεις σου."
+    system_prompt: str = "You are Aria, a smart personal AI assistant for your creator, Philip. Philip is a Computer & Software Engineer (educated in Patras, originally from Lamia, Greece) and an AI Engineer. Answer concisely and directly."
+    system_prompt_no_rag: str = "You are Aria, a smart personal AI assistant for your creator, Philip (Computer Engineer from Patras/Lamia, Greece, AI Engineer)."
 
 
 @dataclass
@@ -55,11 +55,11 @@ class AudioConfig:
 @dataclass
 class VADConfig:
     speech_threshold: float = 0.008
-    silence_duration_ms: int = 500
-    lookback_ms: int = 250
-    max_speech_secs: int = 15
+    silence_duration_ms: int = 1200
+    lookback_ms: int = 350
+    max_speech_secs: int = 20
     chunk_ms: int = 32
-    min_utterance_secs: float = 0.3
+    min_utterance_secs: float = 0.8
     min_utterance_rms: float = 0.001
     silero_threshold: float = 0.5
 

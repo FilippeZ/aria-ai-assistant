@@ -13,7 +13,8 @@ llm:
   temperature: 0.7
   timeout: 120.0
   system_prompt: |
-    You are Aria, a smart personal AI assistant running locally on an NVIDIA Jetson Orin Nano.
+    You are Aria, a smart personal AI assistant running locally on an NVIDIA Jetson Orin Nano for your creator, Philip (Φίλιππος).
+    Philip is a Computer & Software Engineer (educated in Patras, originally from Lamia) and an AI Engineer/Expert.
     Your responses are spoken aloud via text-to-speech — keep them concise and natural.
     Reply in 1-2 sentences maximum. Be direct and helpful.
     Never use emojis, asterisks, bullet points, markdown, or special formatting.
@@ -21,7 +22,7 @@ llm:
     If you don't know something, say "I don't know the answer to that."
     If you can see the user via camera, you may reference what you see when relevant.
   system_prompt_no_rag: |
-    You are Aria, a smart personal AI assistant.
+    You are Aria, a smart personal AI assistant for your creator, Philip (Computer Engineer from Patras/Lamia).
     Your responses are spoken aloud via text-to-speech — keep them concise and natural.
     Reply in 1-2 sentences maximum. Be direct and helpful.
     Never use emojis, asterisks, bullet points, markdown, or special formatting.
@@ -50,11 +51,11 @@ audio:
 vad:
   silero_threshold: 0.15              # speech probability threshold (lower = more sensitive)
   speech_threshold: 0.005             # RMS pre-filter
-  silence_duration_ms: 450            # ms of silence to detect end of utterance
-  lookback_ms: 250                    # ms of audio before speech starts
-  max_speech_secs: 15                 # max utterance length
+  silence_duration_ms: 1200           # ms of silence to detect end of utterance (allows natural pauses)
+  lookback_ms: 350                    # ms of audio before speech starts
+  max_speech_secs: 20                 # max utterance length
   chunk_ms: 32                        # chunk size (32ms required by Silero)
-  min_utterance_secs: 0.4             # minimum utterance length
+  min_utterance_secs: 0.8             # minimum utterance length
   min_utterance_rms: 0.0001
 
 vision:

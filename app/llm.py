@@ -30,7 +30,7 @@ class LLM:
         max_tokens: int = 512,
         temperature: float = 0.7,
         system_prompt: str = "",
-        timeout: float = 120.0,
+        timeout: float = 300.0,
     ):
         self.model = model
         self.base_url = base_url.rstrip("/")
@@ -270,40 +270,62 @@ class OpenClawLLM(LLM):
         except Exception as e:
             print(f"Logging error: {e}")
 
+    @staticmethod
+    def _clean_user_prompt(prompt: str) -> str:
+        text = prompt
+        if "Question:" in text:
+            text = text.split("Question:", 1)[-1].strip()
+        if "User Identity Profile" in text:
+            lines = [l for l in text.splitlines() if not l.startswith("- ") and "User Identity Profile" not in l]
+            text = " ".join(lines).strip()
+        return text.strip() or prompt
+
     def _decide_routing(self, prompt: str, images_b64: Optional[list[str]] = None) -> str:
-        """Decide routing: LOCAL (optical/VLM model) or CLOUD (OpenClaw Agent / MCP)."""
+        """Decide routing: LOCAL (RAG/optical/local model) or CLOUD (OpenClaw Agent / browser)."""
+        clean_prompt = self._clean_user_prompt(prompt)
         # 1. Vision/Optical requests always route to local VLM
         if images_b64:
             return "LOCAL"
 
-        p_lower = prompt.lower()
+        p_lower = clean_prompt.lower()
         vlm_keywords = ["vlm", "camera", "see", "look", "vlepei", "vlepeis", "perivelon", "picture", "image", "optiko"]
         if any(kw in p_lower for kw in vlm_keywords):
             return "LOCAL"
 
-        # 2. Agent actions & MCP tool requests (NotebookLM, YouTube, WhatsApp) route CLOUD
-        cloud_keywords = ["openclaw", "play", "youtube", "whatsapp", "send message", "weather", "search online", "remind me", "email", "notebooklm", "notebook", "mcp", "notes"]
+        # 2. Agent actions & MCP tool requests -> CLOUD
+        cloud_keywords = [
+            "openclaw", "play", "youtube", "whatsapp", "send message", "weather",
+            "search online", "remind me", "email", "notebooklm", "notebook", "mcp",
+            "notes", "audit", "system audit", "system_optimizer", "code synthesis",
+            "generate script", "create app", "comparison", "compare", "recipe",
+            "recipes", "find a recipe", "moussaka", "search", "find", "google", "look up"
+        ]
         if any(kw in p_lower for kw in cloud_keywords):
             return "CLOUD"
 
-        local_keywords = ["hello", "hi", "who are you", "what time", "1 + 1", "what's up", "how are you", "good morning", "good evening"]
-        if any(kw in p_lower for kw in local_keywords):
+        # 3. Technical, Hardware & RAG Queries -> ALWAYS LOCAL RAG!
+        local_rag_keywords = [
+            "jetson", "orin", "nano", "jetion", "spec", "specs", "characteristics", "characteristic",
+            "hardware", "cuda", "nvpmodel", "jtop", "rag", "knowledge", "doc", "documentation",
+            "power mode", "bandwidth", "memory", "cpu", "gpu", "system status", "telemetry",
+            "local", "hello", "hi", "who are you", "what time", "1 + 1", "what's up", "how are you",
+            "good morning", "good evening", "tell me about jetson", "tell me about nano"
+        ]
+        if any(kw in p_lower for kw in local_rag_keywords):
             return "LOCAL"
 
-        # 3. LLM semantic router fallback
+        # 4. LLM semantic router fallback
         sys_prompt = (
-            "You are a semantic router. Classify the user prompt as either 'CLOUD' or 'LOCAL'.\n"
-            "Examples:\n"
-            "User: Hello, who are you?\nRouter: LOCAL\n"
-            "User: Can you play a song from youtube?\nRouter: CLOUD\n"
-            "User: Analyze my notes.\nRouter: CLOUD\n"
-            "User: What is 1 + 1?\nRouter: LOCAL\n"
-            "Only reply with exactly CLOUD or LOCAL."
+            "You are a semantic router for an AI assistant on NVIDIA Jetson Orin Nano.\n"
+            "Classify the user prompt as either 'CLOUD' or 'LOCAL'.\n"
+            "LOCAL = general questions, math, local Jetson hardware, local knowledge base, chatting.\n"
+            "CLOUD = web browser control, playing YouTube videos, sending WhatsApp messages, external API tasks.\n\n"
+            "User prompt: " + clean_prompt + "\nRouter:"
         )
         decision = ""
         try:
             for chunk, meta in super().generate_stream(
-                prompt=prompt,
+                prompt=clean_prompt,
                 system_prompt=sys_prompt,
                 max_tokens=10,
                 temperature=0.0
@@ -329,7 +351,8 @@ class OpenClawLLM(LLM):
     ) -> Iterator[tuple]:
         route = self._decide_routing(prompt, images_b64=images_b64)
         print(f"🧠 Routing Decision: {route}")
-        p_lower = prompt.lower()
+        clean_prompt = self._clean_user_prompt(prompt)
+        p_lower = clean_prompt.lower()
 
         # ── Advanced Local Tool Shortcuts ──────────────────────────────────
         if "system status" in p_lower or "telemetry" in p_lower or "jetson status" in p_lower or "how is jetson" in p_lower:
@@ -350,7 +373,7 @@ class OpenClawLLM(LLM):
 
         if route == "CLOUD":
             if "youtube" in p_lower or ("play" in p_lower and "song" in p_lower) or "click" in p_lower:
-                query = prompt.replace("open youtube and play", "").replace("open youtube", "").replace("play", "").replace("click it to hear it", "").replace("click", "").strip()
+                query = clean_prompt.replace("open youtube and play", "").replace("open youtube", "").replace("play", "").replace("click it to hear it", "").replace("click", "").strip()
                 if not query or len(query) < 3:
                     query = "greek song pantelidis"
                 try:
@@ -373,15 +396,17 @@ class OpenClawLLM(LLM):
                     yield (f"Error generating GUI application: {ex}", {"done": True})
                 return
 
-            if "search online" in p_lower or "find article" in p_lower or "search web" in p_lower or "google" in p_lower:
-                query = prompt.replace("search online", "").replace("find article", "").replace("search web", "").replace("google", "").strip()
+            if any(kw in p_lower for kw in ["search online", "find article", "search web", "google", "recipe", "moussaka", "find", "search", "look up"]):
+                query = clean_prompt.replace("search online", "").replace("find article", "").replace("search web", "").replace("google", "").replace("find a recipe", "").replace("find", "").replace("search for", "").strip()
+                if not query:
+                    query = "recipe for moussaka"
                 from app.tools.cursor_control import open_browser_search
                 res_msg = open_browser_search(query)
                 yield (f"🧠 OpenClaw Web Agent: {res_msg}", {"done": True})
                 return
 
             if "execute python" in p_lower or "run python" in p_lower:
-                code = prompt.replace("execute python", "").replace("run python", "").strip()
+                code = clean_prompt.replace("execute python", "").replace("run python", "").strip()
                 from app.tools.cursor_control import execute_python_code
                 res_msg = execute_python_code(code)
                 yield (f"🧠 OpenClaw Python Agent: {res_msg}", {"done": True})
@@ -390,7 +415,7 @@ class OpenClawLLM(LLM):
             if "terminal" in p_lower or "write this program" in p_lower or "run command" in p_lower:
                 try:
                     from app.tools.cursor_control import open_terminal_and_run
-                    cmd = prompt.replace("open terminal and run", "").replace("write this program", "").strip() or "htop"
+                    cmd = clean_prompt.replace("open terminal and run", "").replace("write this program", "").strip() or "htop"
                     res_msg = open_terminal_and_run(cmd)
                     yield (f"🧠 OpenClaw Terminal Agent: {res_msg}", {"done": True})
                 except Exception as ex:
@@ -398,7 +423,6 @@ class OpenClawLLM(LLM):
                 return
 
             yield ("Connecting to OpenClaw Agent to execute your task...", {"done": False})
-            self.log_to_whatsapp(f"🧠 Agent Task Triggered: '{prompt}'")
             
             cloud_prompt = prompt
             if few_shot:
@@ -410,11 +434,9 @@ class OpenClawLLM(LLM):
                 result = subprocess.run([
                     "openclaw", "agent", 
                     "--agent", "main",
-                    "--channel", "whatsapp",
-                    "--to", "+306975922894",
                     "--message", cloud_prompt, 
                     "--json"
-                ], capture_output=True, text=True, timeout=120)
+                ], capture_output=True, text=True, timeout=180)
                 
                 if result.returncode == 0:
                     try:
@@ -423,20 +445,29 @@ class OpenClawLLM(LLM):
                         if isinstance(answer, dict):
                             answer = answer.get("content") or answer.get("text") or str(answer)
                         yield (str(answer), {"done": True})
+                        return
                     except json.JSONDecodeError:
                         stdout_text = result.stdout.strip()
                         if stdout_text:
                             yield (stdout_text, {"done": True})
+                            return
                         else:
                             yield ("Task completed by the Agent.", {"done": True})
+                            return
                 else:
-                    print(f"OpenClaw Agent Error: {result.stderr}")
-                    yield ("There was an issue executing the Agent.", {"done": True})
-            except subprocess.TimeoutExpired:
-                yield ("The task is taking longer than expected, but is running in the background.", {"done": True})
+                    print(f"OpenClaw Agent CLI info: {result.stderr.strip()}")
             except Exception as e:
-                print(f"Error calling OpenClaw agent: {e}")
-                yield ("An error occurred while communicating with the Agent.", {"done": True})
+                print(f"OpenClaw Agent CLI exception: {e}")
+
+            # Fallback to direct model completion stream if agent CLI is not configured
+            yield from super().generate_stream(
+                prompt=cloud_prompt,
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                images_b64=images_b64,
+                few_shot=few_shot
+            )
             return
 
         # Use the underlying LLM stream implementation (low latency)

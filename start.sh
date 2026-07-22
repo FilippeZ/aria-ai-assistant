@@ -14,9 +14,10 @@ export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH
 export NO_PROXY="localhost,127.0.0.1,0.0.0.0,::1"
 export no_proxy="localhost,127.0.0.1,0.0.0.0,::1"
 
-# Run the provided arguments as a command, default to assistant.py
+# Run the provided arguments using virtualenv python, default to assistant.py
+PYTHON_BIN="$SCRIPT_DIR/venv/bin/python"
 if [ $# -eq 0 ]; then
-    python assistant.py
+    "$PYTHON_BIN" assistant.py
 else
-    python "$@"
+    "$PYTHON_BIN" "$@"
 fi

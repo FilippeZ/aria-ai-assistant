@@ -185,7 +185,20 @@ def main():
     parser.add_argument("--no-rag", action="store_true", help="Disable RAG knowledge base")
     parser.add_argument("--host", default=None, help="Web server host (default from config)")
     parser.add_argument("--port", type=int, default=None, help="Web server port (default from config)")
+    parser.add_argument("--run-usecases", action="store_true", help="Run the 3 complicated use cases test suite")
     args = parser.parse_args()
+
+    if args.run_usecases:
+        from test_complicated_usecases import (
+            run_usecase_1_local_rag,
+            run_usecase_2_cloud_research,
+            run_usecase_3_cloud_code_automation,
+        )
+        print("🚀 Running 3 Complicated Use Cases Suite...")
+        run_usecase_1_local_rag()
+        run_usecase_2_cloud_research()
+        run_usecase_3_cloud_code_automation()
+        return
 
     config = Config.load()
     assistant_name = config.assistant.name
@@ -339,26 +352,46 @@ def main():
             name="stats-broadcaster",
         ).start()
 
-    # ── Mic ───────────────────────────────────────────────────
     mic = MicRecorder(console, chunk_ms=config.vad.chunk_ms)
-    if not mic.start(
+    mic_ready = mic.start(
         hw,
         config.audio.input_device or "USB Audio",
         speaker_hint=config.audio.output_device,
         echo_cancellation=config.audio.echo_cancellation,
-    ):
-        console.print("[red]❌ Αδυναμία εκκίνησης μικροφώνου![/red]")
-        return
+    )
+    if not mic_ready:
+        console.print("  [yellow]⚠ Microphone unavailable — running Web UI server[/yellow]")
+        if broadcaster:
+            console.print("  [green]✅ Web UI online at http://0.0.0.0:8090[/green]")
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                return
+        else:
+            return
+
+    # ── Proactive Greeting Thread ─────────────────────────────
+    assistant_active = threading.Event()
+
+    def _on_ptt(active: bool):
+        if active:
+            assistant_active.set()
+            if broadcaster:
+                broadcaster.send({"type": "status", "stage": "listening"})
+            console.print("  [green]🎤 Microphone Active (Unmuted)[/green]")
+        else:
+            assistant_active.clear()
+            if broadcaster:
+                broadcaster.send({"type": "status", "stage": "muted"})
+            console.print("  [yellow]🔇 Microphone Muted[/yellow]")
 
     if broadcaster:
         broadcaster.configure_speakers(
             getter=mic.speaker_state,
             setter=mic.select_speaker,
         )
-        broadcaster.on_ptt_toggle = lambda active: assistant_active.set() if active else None
-
-    # ── Proactive Greeting Thread ─────────────────────────────
-    assistant_active = threading.Event()
+        broadcaster.on_ptt_toggle = _on_ptt
 
     if cam and face_recognizer and use_tts:
         threading.Thread(
@@ -372,12 +405,12 @@ def main():
         assistant_active.set()
 
     if assistant_active.is_set():
-        console.print(f"\n[green bold]✅ Έτοιμο — μίλα οποτεδήποτε![/green bold]\n")
+        console.print(f"\n[green bold]✅ Ready — speak anytime![/green bold]\n")
     else:
-        console.print(f"\n[yellow bold]😴 Σε αναμονή (Dormant). Περιμένω να δω τον Philip στην κάμερα για να ενεργοποιηθώ...[/yellow bold]\n")
+        console.print(f"\n[yellow bold]😴 Dormant. Waiting to recognize Philip on camera to activate...[/yellow bold]\n")
 
     if broadcaster:
-        broadcaster.send({"type": "status", "stage": "listening"})
+        broadcaster.send({"type": "status", "stage": "listening" if broadcaster.ptt_active else "muted"})
 
     chat_history = []
 
@@ -385,8 +418,8 @@ def main():
     try:
         for segment in vad_loop(mic, console, vad_cfg=config.vad, silero=silero_model):
 
-            if not assistant_active.is_set():
-                # Ignore audio if not activated yet
+            if not assistant_active.is_set() or (broadcaster and not broadcaster.ptt_active):
+                # Ignore audio if muted or not activated yet
                 mic.resume()
                 continue
 
@@ -402,7 +435,7 @@ def main():
                     broadcaster.send({"type": "status", "stage": "listening"})
                 continue
 
-            console.print(f'  [green]Εσύ:[/green] "{text}"')
+            console.print(f'  [green]You:[/green] "{text}"')
 
             if broadcaster:
                 broadcaster.send({
@@ -412,18 +445,30 @@ def main():
                     "duration": segment.duration,
                 })
 
-            # ── RAG context injection ─────────────────────────
+            # ── RAG context & User Identity injection ─────────
+            user_identity_context = (
+                "User Identity Profile (Philip):\n"
+                "- Name: Philip (Φίλιππος)\n"
+                "- Hometown: Lamia, Greece\n"
+                "- Education: Computer & Software Engineer (University of Patras)\n"
+                "- Profession & Role: AI Engineer & Creator of the Aria AI Assistant"
+            )
             prompt = text
             if rag:
                 docs = rag.kb.search(text, n_results=rag.n_results)
-                relevant = [d for d in docs if d.get("distance", 2) < 1.0]
+                relevant = [d for d in docs if d.get("distance", 2) < 1.5]
                 if relevant:
                     ctx = "\n\n".join(d["content"] for d in relevant)
-                    prompt = f"Απάντησε χρησιμοποιώντας αυτές τις πληροφορίες:\n\n{ctx}\n\nΕρώτηση: {text}"
+                    prompt = f"Answer concisely using the following information:\n\n{ctx}\n\nQuestion: {text}"
+                    console.print(f"  [cyan]🧠 RAG Retrieval: Found {len(relevant)} relevant chunks in Knowledge Base[/cyan]")
+                else:
+                    prompt = text
+            else:
+                prompt = text
 
             # ── Vision: capture frames if question needs it ───
             images_b64 = None
-            system_prompt = active_system_prompt
+            system_prompt = f"{active_system_prompt}\n\n{user_identity_context}"
             detected_names = []
             
             if cam:

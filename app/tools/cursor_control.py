@@ -49,8 +49,17 @@ def take_screenshot(filename: str = "/tmp/aria_screenshot.png") -> str:
     img.save(filename)
     return filename
 
+def _clean_query(text: str) -> str:
+    if "Question:" in text:
+        text = text.split("Question:", 1)[-1].strip()
+    if "User Identity Profile" in text:
+        lines = [l for l in text.splitlines() if not l.startswith("- ") and "User Identity Profile" not in l]
+        text = " ".join(lines).strip()
+    return text.strip() or "greek song pantelidis"
+
 def open_youtube_and_click_play(search_query: str) -> str:
     """Open YouTube, search query, move cursor to top video thumbnail, and click play."""
+    search_query = _clean_query(search_query)
     import urllib.parse
     url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(search_query)}"
     subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -66,6 +75,7 @@ def open_youtube_and_click_play(search_query: str) -> str:
 
 def open_browser_search(query: str) -> str:
     """Open web browser search query."""
+    query = _clean_query(query)
     import urllib.parse
     url = f"https://www.google.com/search?q={urllib.parse.quote(query)}"
     subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

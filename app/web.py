@@ -28,20 +28,13 @@ from typing import Callable, Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
 
 
 class Broadcaster:
-    """Thread-safe fan-out from the synchronous pipeline to async WebSocket clients.
-
-    Each connected client gets its own asyncio.Queue.  The pipeline calls
-    send() from any thread; messages are routed into the event loop via
-    call_soon_threadsafe.
-
-    Also holds shared push-to-talk (PTT) state: set = unmuted / listening
-    by default, cleared = muted. Any client can toggle via WebSocket.
-    """
+    """Thread-safe fan-out from the synchronous pipeline to async WebSocket clients."""
 
     def __init__(self):
         self._clients: dict[asyncio.Queue, None] = {}
@@ -93,7 +86,6 @@ class Broadcaster:
         """Attach live speaker state and selection callbacks."""
         self._speaker_getter = getter
         self._speaker_setter = setter
-        # Broadcast immediately to connected clients now that it's configured
         self.send(self.get_speaker_state())
 
     def get_speaker_state(self) -> dict:
@@ -126,16 +118,12 @@ class Broadcaster:
 
     @staticmethod
     def _enqueue_latest(q: asyncio.Queue, msg: dict):
-        """Keep a slow client's queue current without leaking payloads to logs."""
         try:
             q.put_nowait(msg)
             return
         except asyncio.QueueFull:
             pass
 
-        # Camera frames are large and quickly become stale. Drop one queued
-        # message and retry instead of letting QueueFull escape from the event
-        # loop callback, where asyncio would log the complete base64 payload.
         try:
             q.get_nowait()
         except asyncio.QueueEmpty:
@@ -152,7 +140,7 @@ class Broadcaster:
         if not loop:
             return
         with self._lock:
-            for q in self._clients:
+            for q in list(self._clients.keys()):
                 try:
                     loop.call_soon_threadsafe(self._enqueue_latest, q, msg)
                 except Exception:
@@ -160,7 +148,7 @@ class Broadcaster:
 
 
 def create_app(broadcaster: Broadcaster) -> FastAPI:
-    app = FastAPI(title="Reachy Mini Vision Chat")
+    app = FastAPI(title="Aria Personal AI Assistant")
 
     @app.on_event("startup")
     async def _startup():
@@ -175,6 +163,32 @@ def create_app(broadcaster: Broadcaster) -> FastAPI:
                 headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
             )
         return HTMLResponse("<h1>static/index.html not found</h1>", status_code=404)
+
+    @app.get("/aria.jpeg")
+    async def _aria_icon():
+        icon_path = STATIC_DIR / "aria.png"
+        if not icon_path.exists():
+            icon_path = STATIC_DIR / "aria.jpeg"
+        if not icon_path.exists():
+            icon_path = Path(__file__).parent.parent / "aria.jpeg"
+        if icon_path.exists():
+            return FileResponse(
+                icon_path,
+                media_type="image/png" if icon_path.suffix == ".png" else "image/jpeg",
+                headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+            )
+        return HTMLResponse("Icon not found", status_code=404)
+
+    @app.get("/aria.png")
+    async def _aria_png():
+        return await _aria_icon()
+
+    @app.get("/favicon.ico")
+    async def _favicon():
+        return await _aria_icon()
+
+    if STATIC_DIR.exists():
+        app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
     @app.websocket("/ws")
     async def _ws(ws: WebSocket):
@@ -236,17 +250,20 @@ def start_web_server(
     port: int = 8090,
 ) -> threading.Thread:
     """Start uvicorn in a daemon thread.  Returns immediately."""
+    import sys
     import uvicorn
-
-    app = create_app(broadcaster)
 
     def _run():
         try:
-            uvicorn.run(app, host=host, port=port, log_level="warning")
+            print(f"  🌐 Starting Uvicorn on http://{host}:{port}...", flush=True)
+            app = create_app(broadcaster)
+            config = uvicorn.Config(app, host=host, port=port, log_level="info")
+            server = uvicorn.Server(config)
+            server.run()
         except Exception as e:
             import traceback
             traceback.print_exc()
-            print(f"Uvicorn failed: {e}")
+            print(f"❌ Uvicorn failed: {e}", flush=True)
 
     t = threading.Thread(target=_run, daemon=True, name="web-server")
     t.start()

@@ -90,14 +90,15 @@ class JetsonFileDashboard(tk.Tk):
         for item in self.tree.get_children():
             self.tree.delete(item)
             
-        kb_dir = Path("/home/filippos/reachy-mini-jetson-assistant/knowledge_base")
+        base_dir = Path(__file__).parent.parent.parent
+        kb_dir = base_dir / "knowledge_base"
         if kb_dir.exists():
             for f in kb_dir.glob("*"):
                 if f.is_file():
                     size = f"{f.stat().st_size / 1024:.1f} KB"
                     self.tree.insert("", "end", values=(f.name, size, str(f)))
                     
-        proj_dir = Path("/home/filippos/reachy-mini-jetson-assistant")
+        proj_dir = base_dir
         for f in proj_dir.glob("*.py"):
             size = f"{f.stat().st_size / 1024:.1f} KB"
             self.tree.insert("", "end", values=(f.name, size, str(f)))
@@ -124,7 +125,8 @@ if __name__ == "__main__":
     os.chmod(script_path, 0o755)
     
     # Launch GUI using environment python
-    venv_py = "/home/filippos/reachy-mini-jetson-assistant/venv/bin/python"
+    base_dir = Path(__file__).parent.parent.parent
+    venv_py = str(base_dir / "venv" / "bin" / "python")
     subprocess.Popen([venv_py, str(script_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return f"Created custom GUI application at '{script_path}' and launched it on your PC desktop!"
 
