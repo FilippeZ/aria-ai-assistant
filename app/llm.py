@@ -399,8 +399,8 @@ class OpenClawLLM(LLM):
                     yield (f"Error generating GUI application: {ex}", {"done": True})
                 return
 
-            if any(kw in p_lower for kw in ["search online", "find article", "search web", "google", "recipe", "moussaka", "find", "search", "look up"]):
-                query = clean_prompt.replace("search online", "").replace("find article", "").replace("search web", "").replace("google", "").replace("find a recipe", "").replace("find", "").replace("search for", "").strip()
+            if any(kw in p_lower for kw in ["search online", "find article", "search web", "google", "recipe", "moussaka", "search for article", "look up online"]):
+                query = clean_prompt.replace("search online", "").replace("find article", "").replace("search web", "").replace("google", "").replace("find a recipe", "").replace("search for article", "").replace("look up online", "").strip()
                 if not query:
                     query = "recipe for moussaka"
                 from app.tools.cursor_control import open_browser_search

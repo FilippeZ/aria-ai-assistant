@@ -59,7 +59,10 @@ def extract_youtube_query(text: str) -> str:
     
     # Remove prefix action phrases
     text = re.sub(r"^(?:oh!|oh|hey|aria|please|can you|could you)?\s*", "", text, flags=re.IGNORECASE).strip()
-    text = re.sub(r"^(?:open\s+youtube\s+and\s+search\s+for|open\s+youtube\s+and\s+play|open\s+youtube\s+and|open\s+youtube|search\s+and\s+play|find\s+and\s+play|search\s+for|find|look\s+up|play\s+me|play\s+a|play\s+some|play|click\s+it\s+to\s+hear\s+it|click|βρες\s+και\s+παίξε|βρες\s+και\s+παιξε|παίξε\s+μου|παιξε\s+μου|παίξε|παιξε|βρες|vres\s+kai\s+paixe|paixe\s+mou|paixe|vres)\s*", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"^(?:open\s+youtube\s+and\s+search\s+for|open\s+youtube\s+and\s+play|open\s+youtube\s+and|open\s+youtube|search\s+and\s+play|find\s+and\s+play|search\s+for|find|look\s+up|play\s+me|play\s+a|play\s+some|play|put\s+on|listen\s+to|click\s+it\s+to\s+hear\s+it|click|βρες\s+και\s+παίξε|βρες\s+και\s+παιξε|παίξε\s+μου|παιξε\s+μου|παίξε|παιξε|βρες|vres\s+kai\s+paixe|paixe\s+mou|paixe|vres)\s*", "", text, flags=re.IGNORECASE).strip()
+
+    # Remove leading articles
+    text = re.sub(r"^(?:the|a|an|to|ton|ti|tin|το|τον|τη|την)\s+", "", text, flags=re.IGNORECASE).strip()
 
     # Remove filler suffix/words if specific artist/song title remains
     cleaned_suffix = re.sub(r"\b(?:song|music|video|track|tragoudi|mousiki|on youtube|youtube)\b", "", text, flags=re.IGNORECASE).strip()
