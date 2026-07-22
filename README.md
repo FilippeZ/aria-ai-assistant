@@ -289,11 +289,11 @@ aria-ai-assistant/
 ```
 
 ### Module Responsibilities:
-* **`assistant.py` (Master Orchestrator):** Controls system lifecycle and multi-threaded background workers (`_stats_thread` for telemetry broadcasting, `_frame_thread` for camera streaming, `_face_monitor_thread` for proactive greetings with a 10-hour cooldown).
-* **`app/pipeline.py` (Audio Pipeline):** Manages WebRTC Acoustic Echo Cancellation (AEC) and real-time sentence streaming (`stream_and_speak`).
-* **`app/stt.py` (Speech Transcription):** Executes STT model warmups (`warmup_stt`) using silent audio frames to eliminate initial GPU execution lag.
-* **`app/face_recognition.py` (Face Tracking):** Downscales high-res camera frames to 640px width before running YuNet on CPU, scaling coordinates back up for real-time tracking without frame drops.
-* **`app/web.py` (Web Dashboard):** Serves FastAPI on port 8090 with WebSockets to push live camera frames, transcripts, system load bars (CPU/RAM/GPU), and PTT status.
+* **`assistant.py` (Master Orchestrator):** Controls system lifecycle, VAD loop handling, and background threads (`_stats_thread` for telemetry, `_frame_thread` for live web camera streaming, `_face_monitor_thread` for proactive user greetings with a 10-hour cooldown).
+* **`app/pipeline.py` (Audio Pipeline):** Manages PyAudio microphone streams, WebRTC Acoustic Echo Cancellation (AEC), and chunked real-time sentence streaming (`stream_and_speak`).
+* **`app/stt.py` (Speech Transcription):** Handles GPU-accelerated `faster-whisper` speech-to-text inference with INT8 quantization, fallback handling, and CUDA tensor initialization.
+* **`app/face_recognition.py` (Face Perception & Recognition):** Executes YuNet face detection and 128D OpenFace feature extraction for biometric identification of Philip against saved reference embeddings.
+* **`app/web.py` (Web Dashboard Server):** Operates FastAPI on port 8090 with WebSockets to stream live camera feeds, real-time transcripts, push-to-talk (PTT) state, and system performance telemetry (CPU/RAM/GPU).
 
 ---
 
