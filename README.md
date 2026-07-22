@@ -288,8 +288,6 @@ aria-ai-assistant/
 └── README.md                   # Project documentation
 ```
 
-
-
 ---
 
 ## ⚙️ Installation & Quick Start
