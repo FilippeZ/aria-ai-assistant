@@ -454,21 +454,19 @@ def main():
                 "- Profession & Role: AI Engineer & Creator of the Aria AI Assistant"
             )
             prompt = text
+            rag_context = ""
             if rag:
                 docs = rag.kb.search(text, n_results=rag.n_results)
                 relevant = [d for d in docs if d.get("distance", 2) < 1.5]
                 if relevant:
-                    ctx = "\n\n".join(d["content"] for d in relevant)
-                    prompt = f"Answer concisely using the following information:\n\n{ctx}\n\nQuestion: {text}"
+                    rag_context = "Retrieved Knowledge Base Context:\n" + "\n\n".join(d["content"] for d in relevant)
                     console.print(f"  [cyan]🧠 RAG Retrieval: Found {len(relevant)} relevant chunks in Knowledge Base[/cyan]")
-                else:
-                    prompt = text
-            else:
-                prompt = text
 
             # ── Vision: capture frames if question needs it ───
             images_b64 = None
             system_prompt = f"{active_system_prompt}\n\n{user_identity_context}"
+            if rag_context:
+                system_prompt += f"\n\n{rag_context}"
             detected_names = []
             
             if cam:
