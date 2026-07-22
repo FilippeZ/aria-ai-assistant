@@ -130,6 +130,85 @@ graph TD
 
 ---
 
+## ⚡ Hardware Architecture & AI Models Symphony
+
+### 1. 🧠 NVIDIA Jetson Orin Nano Architecture (Edge AI Hardware)
+The **NVIDIA Jetson Orin Nano (8GB / 67 TOPS)** is a pocket supercomputer engineered specifically for **Physical & Edge AI**. Rather than relying on cloud latency, ARIA processes real-time multimodal workloads directly on the hardware:
+
+* **Unified Memory Architecture (UMA):** Unlike desktop PCs with separate CPU & GPU VRAM pools, the Jetson shares **8GB LPDDR5 RAM** directly between the CPU and GPU with a fast **102 GB/s bandwidth**. This eliminates data transfer overhead over PCIe buses.
+* **Dynamic Power Efficiency (`nvpmodel`):** Hardware power draw can be dynamically scaled using `nvpmodel` from maximum performance (25W) down to battery-friendly modes (7W or 15W).
+* **Memory Optimization Stack:** Utilizes headless Linux execution paired with a **16GB NVMe SSD Swap file** to ensure memory stability under heavy multimodal workloads.
+
+---
+
+### 2. 🔀 CPU & GPU Functional Processing Division
+
+| Processing Unit | Hardware Cores | Primary AI & System Responsibilities |
+| :--- | :--- | :--- |
+| **CPU (Central Processing Unit)** | **6-core ARM Cortex-A78AE** | Runs Ubuntu OS, network pipelines, **Silero VAD** (32ms audio chunking), **YuNet** face detection, and **Kokoro-ONNX** text-to-speech synthesis (CPU-offloaded to preserve VRAM). |
+| **GPU (Graphics Processing Unit)** | **1024-core Ampere GPU + 32 Tensor Cores** | Handles massive parallel matrix multiplications, **`faster-whisper`** GPU CUDA STT (via CTranslate2 INT8), and **`Cosmos-Reason2-2B`** VLM scene perception & spatial reasoning. |
+
+---
+
+### 3. 🌌 The Cosmos Vision-Language Models (Physical AI)
+NVIDIA's **Cosmos-Reason2** family provides intuitive spatial reasoning for Physical AI:
+* **Deep Physical Reasoning:** Beyond simple image tagging, Cosmos understands temporal and physical relations between objects in physical space.
+* **4-bit Quantization (`Q4_K_M`):** Originally requiring 5GB RAM, Cosmos is compressed via INT4 quantization down to **~1.2GB VRAM**, running smoothly alongside the OS and STT pipeline inside Jetson's 8GB Unified Memory.
+* **Multimodal Transformer (`mmproj`):** Uses visual projection embeddings to translate camera frames (`/dev/video0`) into token streams for immediate local inference.
+* **Massive Context Window:** Capable of handling context windows up to **256,000 tokens**.
+
+---
+
+### 4. 🎭 Multimodal AI Model Symphony
+To deliver instant voice and vision feedback, ARIA orchestrates a synchronized ensemble of specialized models:
+
+```
+                  ┌─────────────────────────────────────────┐
+                  │ 🎙️ Microphone Audio Input                │
+                  └────────────────────┬────────────────────┘
+                                       │
+                         ┌─────────────┴─────────────┐
+                         │   Silero VAD (CPU 32ms)   │
+                         └─────────────┬─────────────┘
+                                       │ Speech Detected
+                         ┌─────────────┴─────────────┐
+                         │ faster-whisper INT8 (GPU) │
+                         └─────────────┬─────────────┘
+                                       │ Transcript
+   ┌───────────────────────────────────┼───────────────────────────────────┐
+   │                                   │                                   │
+┌──┴──────────────────────┐ ┌──────────┴───────────┐ ┌─────────────────────┴──┐
+│  YuNet Face Rec (CPU)   │ │ Cosmos-Reason2 (GPU) │ │ OpenClaw Gateway (Cloud)│
+│  Biometric Identity     │ │ Physical Perception │ │ Agent & Cursor Tools    │
+└──┬──────────────────────┘ └──────────┬───────────┘ └─────────────────────┬──┘
+   │                                   │                                   │
+   └───────────────────────────────────┼───────────────────────────────────┘
+                                       │ Response Text
+                         ┌─────────────┴─────────────┐
+                         │  Kokoro-ONNX TTS (CPU)    │
+                         └─────────────┬─────────────┘
+                                       │ Audio Stream
+                  ┌────────────────────┴────────────────────┐
+                  │ 🔊 Speaker Output (WebRTC AEC)           │
+                  └─────────────────────────────────────────┘
+```
+
+* **`faster-whisper` (GPU STT):** Operates on CUDA GPU using INT8 CTranslate2 quantization, achieving up to **4x speedup** over standard Whisper.
+* **`Kokoro-ONNX` (CPU TTS):** High-quality voice synthesis offloaded to CPU to save GPU VRAM. Employs 8-word chunk buffering for seamless, non-stuttering speech output.
+* **`Silero VAD` (CPU Attention):** Constantly analyzes audio chunks every 32ms to gate STT processing and eliminate idle CPU/GPU load.
+* **`YuNet` (CPU Optical Tracker):** Lightweight computer vision model running on CPU to detect human faces without consuming GPU resources.
+
+---
+
+### 5. 🤖 OpenClaw: 24/7 Agentic Execution Layer
+**OpenClaw** operates as a continuous background daemon (Node.js Gateway) providing autonomous agentic capabilities:
+* **24/7 Background Agency:** Continuously runs as a system daemon executing background tasks, tool calls, and scheduled Cron jobs.
+* **Autonomous Skillset & Tools:** Connects the LLM to local shell execution, desktop GUI cursor navigation, web search engines, Python code execution, and NotebookLM deep research.
+* **Messaging Integration:** Supports remote messaging bridges (e.g., Telegram / WhatsApp) to query your Jetson assistant remotely.
+* **Hybrid Load Balancing:** Delegates heavy agent reasoning (16k+ prompt tokens) to cloud gateways (e.g., Groq / Llama 3 70B) while keeping voice and vision processing local, ensuring zero latency degradation on the Jetson Orin Nano.
+
+---
+
 ## 📂 Repository Structure
 
 ```
