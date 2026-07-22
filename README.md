@@ -293,6 +293,73 @@ When running, ARIA exposes the following local interfaces:
 - *"Aria, create a desktop app for calculating fast Fourier transforms"* → Generates Python GUI app and desktop launcher icon.
 - *"Aria, use NotebookLM to analyze my research notes on neural interfaces"* → Queries NotebookLM and returns a structured comparison table.
 
+## 🇬🇷 Σύνδεση με τη Θεωρία του AI Engineering & Hardware Setup
+
+### 1.0 Σύνδεση με τη θεωρία του AI Engineering
+Το project Aria δεν αποτελεί απλώς μια πρακτική κατασκευή, αλλά εφαρμόζει βασικές αρχές της θεωρίας του AI Engineering. Η ανάπτυξή του ακολουθεί τη λογική **Product → Data → Model**: πρώτα δημιουργείται ένα λειτουργικό πρωτότυπο που λύνει ένα πραγματικό πρόβλημα αλληλεπίδρασης ανθρώπου-μηχανής και στη συνέχεια γίνονται επιλογές μοντέλων, βελτιστοποιήσεις και τεχνικές προσαρμογές ανάλογα με τους περιορισμούς του συστήματος.
+
+Η θεωρία του **AI Stack** εμφανίζεται ξεκάθαρα στην αρχιτεκτονική της Aria. Στο επίπεδο της υποδομής υπάρχουν το Jetson Orin Nano, η GPU, η CPU, η ενιαία μνήμη και ο NVMe SSD. Στο επίπεδο ανάπτυξης μοντέλων εφαρμόζονται τεχνικές όπως ο κβαντισμός, η επιλογή μικρών μοντέλων και η κατανομή φόρτου μεταξύ CPU και GPU. Στο επίπεδο ανάπτυξης εφαρμογής εντάσσονται η διεπαφή χρήστη, το Web UI, το voice pipeline, η αναγνώριση προσώπων και η αλληλεπίδραση σε πραγματικό χρόνο.
+
+Ιδιαίτερα σημαντική είναι η σύνδεση με τη θεωρία της **βελτιστοποίησης inference**. Επειδή τα edge devices έχουν περιορισμένη μνήμη και υπολογιστικούς πόρους, η Aria εφαρμόζει πρακτικές όπως 4-bit quantization, χρήση int8 στο Speech-to-Text, GPU offloading μέσω llama.cpp, CPU execution για το TTS, χρήση swap σε NVMe και προθέρμανση μοντέλων. Αυτές οι επιλογές συνδέονται άμεσα με τη θεωρητική ανάγκη για χαμηλό latency, χαμηλή κατανάλωση πόρων και αξιόπιστη τοπική εκτέλεση σε συσκευές edge.
+
+Τέλος, η Aria εφαρμόζει στην πράξη την έννοια των **multimodal foundation models**, καθώς συνδυάζει ομιλία, κείμενο, εικόνα και αναγνώριση προσώπου σε ένα ενιαίο σύστημα. Με αυτόν τον τρόπο, το project λειτουργεί ως case study που δείχνει πώς η θεωρία των foundation models, του AI Stack, της βελτιστοποίησης inference και του edge deployment μετατρέπεται σε πραγματικό AI προϊόν.
+
+### 1.1 Hardware Platform: NVIDIA Jetson Orin Nano
+Το Jetson Orin Nano είναι ένας υπερυπολογιστής "edge AI", κατασκευασμένος για να εκτελεί τοπικά βαριά μοντέλα μηχανικής μάθησης, χωρίς να απαιτείται εξάρτηση από το cloud.
+
+#### 1.1.1 Βασικά χαρακτηριστικά υλικού
+* **Επεξεργαστής (CPU):** Διαθέτει έναν 6-πύρηνο επεξεργαστή Arm Cortex-A78AE v8.2 64-bit. Η CPU είναι ο κεντρικός "εγκέφαλος" του υπολογιστή που αναλαμβάνει τις γενικές και πολύπλοκες διεργασίες. Το γεγονός ότι διαθέτει 6 πυρήνες, σημαίνει ότι μπορεί να εκτελεί ταυτόχρονα 6 διαφορετικές, "βαριές" εντολές χωρίς να κολλάει. *(Αναλογία: Φαντάσου την CPU σαν ένα επιβατικό jumbo jet. Ευέλικτη και ταχύτατη.)*
+* **Κάρτα Γραφικών (GPU):** Βασίζεται στην αρχιτεκτονική NVIDIA Ampere, με 1024-core GPU και 32 Tensor Cores. Ενώ η CPU έχει λίγους αλλά "έξυπνους" πυρήνες, η GPU διαθέτει χιλιάδες σχεδιασμένους για παράλληλη επεξεργασία (parallel processing). Οι **Tensor Cores** είναι απόλυτα εξειδικευμένοι σχεδιασμένοι αποκλειστικά για τον πολλαπλασιασμό πινάκων (matrices), δίνοντας τη δυνατότητα για inference σε πραγματικό χρόνο. *(Αναλογία: Η GPU είναι ένα τεράστιο cargo ship μεταφοράς εμπορευματοκιβωτίων.)*
+* **Μνήμη (RAM):** 8GB LPDDR5 (128-bit) με πολύ υψηλό εύρος ζώνης στα 102 GB/s. Αυτή η τεράστια ταχύτητα αποτρέπει το "μποτιλιάρισμα" δεδομένων.
+* **Επιδόσεις AI:** Η πλακέτα αποδίδει έως και 67 TOPS (Tera Operations Per Second), εξασφαλίζοντας ότι τα AI μοντέλα ανταποκρίνονται σε πραγματικό χρόνο.
+
+### 1.2 Αγορά και εγκατάσταση υλικού
+Το Jetson Orin Nano δεν διαθέτει ενσωματωμένο αποθηκευτικό χώρο (eMMC), αλλά επεκτείνεται μέσω εξωτερικών μέσων για μέγιστη ταχύτητα.
+
+<div align="center">
+  <img src="static/hardware_setup_1.jpg" alt="Hardware Setup of ARIA" width="400" style="border-radius: 10px; margin: 10px;">
+  <img src="static/hardware_setup_2.jpg" alt="Hardware Components of ARIA" width="400" style="border-radius: 10px; margin: 10px;">
+</div>
+
+1. **Αρχική Εγκατάσταση (MicroSD):** 
+   * **SANDISK 256GB Extreme microSDXC & UGREEN SD Card Reader (USB 3.0):** Για την πρώτη εκκίνηση, το "image" του OS φλασαρίστηκε εδώ.
+2. **Κύριος Αποθηκευτικός Χώρος (NVMe SSD):** 
+   * **SK hynix Platinum P41 1TB PCIe NVMe Gen4:** Το πρωτόκολλο NVMe επιτρέπει στον δίσκο να επικοινωνεί απευθείας με τον επεξεργαστή. Σε αυτόν τον δίσκο εγκαταστάθηκε το Ubuntu, το NVIDIA JetPack SDK και τα Docker containers, και το σύστημα κάνει boot από εδώ.
+3. **Προβολή και Συνδεσιμότητα:** 
+   * **Καλώδιο SWITCHFLUX DisplayPort 1.4 σε HDMI 2.1:** Η πλακέτα παράγει εικόνα αποκλειστικά μέσω θύρας DisplayPort. Το καλώδιο τη μετατρέπει σε HDMI για τη σύνδεση σε συμβατικές οθόνες.
+
+### 1.3 Πρόκληση ενιαίας μνήμης και διαχείριση πόρων
+Το Jetson Orin Nano αξιοποιεί μια αρχιτεκτονική Ενιαίας Μνήμης (Unified Memory). Αυτό σημαίνει ότι οι 6 πυρήνες της CPU και οι 1024 πυρήνες της GPU μοιράζονται την ίδια «δεξαμενή» των 8GB RAM. Το Ubuntu δεσμεύει μέρος της, αφήνοντας ~3,5GB με 4GB για τα AI μοντέλα. Η ταυτόχρονη εκτέλεση LLM, STT, TTS, και Face Rec μπορεί να οδηγήσει σε Out-Of-Memory (OOM) Killer.
+
+**Πώς η "Aria" λύνει το πρόβλημα αξιοποιώντας το Hardware:**
+1. **NVMe SSD & 16GB Swap:** Η Aria δημιουργεί 16GB εικονικής μνήμης (Swap) πάνω στον υπερ-γρήγορο NVMe Gen4 SSD της SK hynix. Η μεταφορά δεδομένων μεταξύ της RAM και του δίσκου γίνεται αστραπιαία.
+2. **Αυστηρός Διαχωρισμός (Load Balancing) CPU και GPU:** Τα πιο ελαφριά μοντέλα —όπως το TTS (Kokoro) ή ο YuNet— ανατίθενται αποκλειστικά στην CPU, αφήνοντας την GPU να διαχειριστεί το πιο βαρύ έργο (LLM και STT).
+
+### 1.4 Αρχιτεκτονική λογισμικού της Aria
+
+* **1.4.1 Εγκέφαλος (Vision & Reasoning):** 
+  * **Μοντέλο:** Cosmos-Reason2-2B-Q4_K_M (GPU)
+  * **Βελτιστοποίηση:** 4-bit Quantization (K-quants). Το μέγεθος μειώνεται από ~5GB σε 1,2GB. Το llama.cpp (NGL=999) τρέχει αποκλειστικά στην Ampere GPU για Time-To-First-Token 0.3s. Με χρήση multimodal projector (mmproj) αναλύει pixels της κάμερας σε tokens.
+* **1.4.2 Ακοή (Speech-to-Text):** 
+  * **Μοντέλο:** faster-whisper small (GPU)
+  * **Βελτιστοποίηση:** Τρέχει αναγκαστικά στην GPU, επειδή το CTranslate2 έχει ένα γνωστό SGEMM bug με τους ARM64 Cortex-A78AE (CPU), που θα οδηγούσε σε σιωπηλή αποτυχία πολλαπλασιασμού πινάκων.
+* **1.4.3 Φωνή (Text-to-Speech):** 
+  * **Μοντέλο:** Kokoro ONNX - af_sarah (CPU)
+  * **Βελτιστοποίηση:** Σώζει 1.5GB VRAM. Απομονώνεται σε ξεχωριστό subprocess (worker) λόγω GPL Isolation. Χρησιμοποιεί buffering (8 λέξεις) για ομαλή ροή (αποφυγή stuttering).
+* **1.4.4 Προσοχή (Voice Activity Detection):** 
+  * **Μοντέλο:** Silero VAD (CPU)
+  * **Βελτιστοποίηση:** Αναλύει τον ήχο σε chunks των 32ms σε 1ms χρόνο. Συνδυάζεται με WebRTC AEC για ακύρωση της ηχούς.
+
+### 1.5 Ανάλυση εξαρτημάτων λογισμικού
+Η δομή του φακέλου `app/` πετυχαίνει απόλυτη εξισορρόπηση φορτίου (load balancing):
+* **`assistant.py`:** Ο κεντρικός μαέστρος που τρέχει τηλεμετρία (`_stats_thread`), διαχείριση κάμερας (`_frame_thread`), και προληπτικό χαιρετισμό (`_face_monitor_thread`).
+* **`app/pipeline.py`:** Διαχείριση ακύρωσης ηχούς (AEC / WebRTC) και ομαλής ροής (`stream_and_speak`).
+* **`app/stt.py`:** Τρέχει προθέρμανση (Warmup) στέλνοντας ένα άδειο αρχείο ήχου στους CUDA cores για να αποφευχθεί το initial lag.
+* **`app/tts_worker.py`:** Ανεξάρτητη διεργασία (GPL Isolation) που χρησιμοποιεί CPUExecutionProvider.
+* **`app/llm.py` & `run_llama_cpp.sh`:** Απόλυτη χρήση GPU (NGL=999) και Multimodal Streaming.
+* **`app/face_recognition.py`:** Χρησιμοποιεί Downscaling (640 pixels πλάτος) για να "τεντώνει" αστραπιαία τα αποτελέσματα του YuNet στην CPU χωρίς να φρενάρει το σύστημα.
+* **`app/web.py`:** WebSocket Broadcaster σε FastAPI (port 8090) για ζωντανά δεδομένα χωρίς refresh.
+
 ---
 
 ## 📄 License
