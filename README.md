@@ -40,6 +40,16 @@ ARIA combines local on-device neural processing with cloud agentic intelligence 
 
 ---
 
+## 🖥️ Live Assistant Interface in Action
+
+Here is ARIA AI Assistant running in real-time on desktop with live voice interaction, system status monitoring, and agent execution:
+
+<div align="center">
+  <img src="static/aria_live_usage.png" alt="ARIA AI Assistant Live Desktop Interface" width="900" style="border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.35); margin-top: 10px; margin-bottom: 20px;">
+</div>
+
+---
+
 ## 🖼️ Feature Highlights & Capabilities
 
 ### 🎬 1. Desktop GUI & Media Voice Automation
