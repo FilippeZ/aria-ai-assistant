@@ -288,12 +288,7 @@ aria-ai-assistant/
 └── README.md                   # Project documentation
 ```
 
-### Module Responsibilities:
-* **`assistant.py` (Master Orchestrator):** Controls system lifecycle, VAD loop handling, and background threads (`_stats_thread` for telemetry, `_frame_thread` for live web camera streaming, `_face_monitor_thread` for proactive user greetings with a 10-hour cooldown).
-* **`app/pipeline.py` (Audio Pipeline):** Manages PyAudio microphone streams, WebRTC Acoustic Echo Cancellation (AEC), and chunked real-time sentence streaming (`stream_and_speak`).
-* **`app/stt.py` (Speech Transcription):** Handles GPU-accelerated `faster-whisper` speech-to-text inference with INT8 quantization, fallback handling, and CUDA tensor initialization.
-* **`app/face_recognition.py` (Face Perception & Recognition):** Executes YuNet face detection and 128D OpenFace feature extraction for biometric identification of Philip against saved reference embeddings.
-* **`app/web.py` (Web Dashboard Server):** Operates FastAPI on port 8090 with WebSockets to stream live camera feeds, real-time transcripts, push-to-talk (PTT) state, and system performance telemetry (CPU/RAM/GPU).
+
 
 ---
 
