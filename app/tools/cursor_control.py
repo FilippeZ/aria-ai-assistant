@@ -49,17 +49,32 @@ def take_screenshot(filename: str = "/tmp/aria_screenshot.png") -> str:
     img.save(filename)
     return filename
 
-def _clean_query(text: str) -> str:
+def extract_youtube_query(text: str) -> str:
     import re
     if "Question:" in text:
         text = text.split("Question:", 1)[-1].strip()
     text = re.sub(r"User Identity Profile.*?(?:Question:|\n\n|$)", "", text, flags=re.DOTALL|re.IGNORECASE)
     text = re.sub(r"Answer concisely using the following information:.*?(?:Question:|\n\n|$)", "", text, flags=re.DOTALL|re.IGNORECASE)
-    text = re.sub(r"Question:", "", text, flags=re.IGNORECASE)
-    text = re.sub(r"^(?:oh!|oh|hey|aria|please)?\s*(?:open youtube and play|open youtube|play song|play|click it to hear it|click|search for|search|find)\s*", "", text, flags=re.IGNORECASE).strip()
-    text = re.sub(r"\bPhilip\b", "", text, flags=re.IGNORECASE).strip()
-    text = text.strip(". ,")
-    return text if text else "greek song pantelidis"
+    text = re.sub(r"Question:", "", text, flags=re.IGNORECASE).strip()
+    
+    # Remove prefix action phrases
+    text = re.sub(r"^(?:oh!|oh|hey|aria|please|can you|could you)?\s*", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"^(?:open\s+youtube\s+and\s+search\s+for|open\s+youtube\s+and\s+play|open\s+youtube\s+and|open\s+youtube|search\s+and\s+play|find\s+and\s+play|search\s+for|find|look\s+up|play\s+me|play\s+a|play\s+some|play|click\s+it\s+to\s+hear\s+it|click|βρες\s+και\s+παίξε|βρες\s+και\s+παιξε|παίξε\s+μου|παιξε\s+μου|παίξε|παιξε|βρες|vres\s+kai\s+paixe|paixe\s+mou|paixe|vres)\s*", "", text, flags=re.IGNORECASE).strip()
+
+    # Remove filler suffix/words if specific artist/song title remains
+    cleaned_suffix = re.sub(r"\b(?:song|music|video|track|tragoudi|mousiki|on youtube|youtube)\b", "", text, flags=re.IGNORECASE).strip()
+    cleaned_suffix = re.sub(r"\bPhilip\b", "", cleaned_suffix, flags=re.IGNORECASE).strip(". ,:-")
+
+    if cleaned_suffix and len(cleaned_suffix) >= 2 and cleaned_suffix.lower() not in ["a", "some", "the", "me", "ena", "kanena"]:
+        return cleaned_suffix
+
+    text = re.sub(r"\bPhilip\b", "", text, flags=re.IGNORECASE).strip(". ,:-")
+    if not text or text.lower() in ["a", "some", "the", "me", "ena", "kanena", "a song", "music", "song", "tragoudi", "mousiki"]:
+        return "popular music top hits"
+    return text
+
+def _clean_query(text: str) -> str:
+    return extract_youtube_query(text)
 
 def open_youtube_and_click_play(search_query: str) -> str:
     """Open YouTube, search query, move cursor to top video thumbnail, and click play."""

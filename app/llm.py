@@ -299,7 +299,8 @@ class OpenClawLLM(LLM):
             "search online", "remind me", "email", "notebooklm", "notebook", "mcp",
             "notes", "audit", "system audit", "system_optimizer", "code synthesis",
             "generate script", "create app", "comparison", "compare", "recipe",
-            "recipes", "find a recipe", "moussaka", "search", "find", "google", "look up"
+            "recipes", "find a recipe", "moussaka", "search", "find", "google", "look up",
+            "song", "music", "track", "video", "paixe", "παιξε", "παίξε", "vres", "βρες", "tragoudi", "τραγουδι", "τραγούδι"
         ]
         if any(kw in p_lower for kw in cloud_keywords):
             return "CLOUD"
@@ -373,12 +374,13 @@ class OpenClawLLM(LLM):
             route = "LOCAL"
 
         if route == "CLOUD":
-            if "youtube" in p_lower or ("play" in p_lower and "song" in p_lower) or "click" in p_lower:
-                query = clean_prompt.replace("open youtube and play", "").replace("open youtube", "").replace("play", "").replace("click it to hear it", "").replace("click", "").strip()
-                if not query or len(query) < 3:
-                    query = "greek song pantelidis"
+            is_yt = any(kw in p_lower for kw in [
+                "youtube", "play", "song", "music", "track", "video", "paixe", "παιξε", "παίξε", "vres", "βρες", "tragoudi", "τραγουδι", "τραγούδι"
+            ])
+            if is_yt:
+                from app.tools.cursor_control import open_youtube_and_click_play, extract_youtube_query
+                query = extract_youtube_query(clean_prompt)
                 try:
-                    from app.tools.cursor_control import open_youtube_and_click_play
                     res_msg = open_youtube_and_click_play(query)
                     yield (f"🧠 OpenClaw Cursor Agent: {res_msg}", {"done": True})
                 except Exception as ex:
