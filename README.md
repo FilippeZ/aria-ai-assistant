@@ -321,6 +321,31 @@ When running, ARIA exposes the following local interfaces:
 
 ---
 
+## 🖥️ Desktop Application Integration & System Launchers
+
+### 1. 🚀 Native Linux Desktop Launcher Shortcut (`.desktop`)
+ARIA includes a dedicated desktop shortcut installation script (`create_desktop_shortcut.sh`) that integrates ARIA into Ubuntu's native application launcher menu and system dock:
+
+```bash
+# Generate and register desktop shortcuts
+./create_desktop_shortcut.sh
+```
+
+This creates trusted desktop launchers (`Aria.desktop` & `Aria-Assistant.desktop`) in:
+* **Desktop Workspace:** `~/Desktop/Aria-Assistant.desktop`
+* **System Applications Menu:** `~/.local/share/applications/Aria-Assistant.desktop`
+
+Clicking the desktop icon instantly opens a persistent terminal window executing `launch_aria.sh`, initializing speech recognition, vision feeds, local LLM servers, and the Web UI.
+
+---
+
+### 2. ⚡ Autonomous Desktop App Generator (`app_generator.py`)
+ARIA features an automated desktop application synthesis tool:
+* **Dynamic GUI App Generation:** Voice commands like *"Aria, build a file dashboard"* trigger `app/tools/app_generator.py` to write, grant executable permissions, and spawn custom Tkinter desktop applications (e.g., Jetson File & Storage Dashboard) on-the-fly.
+* **Linux Launcher Shortcuts:** Automatically generates custom `.desktop` shortcuts for newly created tools, giving you instant click-to-run desktop utilities.
+
+---
+
 ## 🗣️ Voice Commands & Example Prompting
 
 ### 🔹 Local Diagnostic & Vision Queries
